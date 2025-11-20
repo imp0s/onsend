@@ -16,6 +16,8 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
 - npm
 - Microsoft 365 subscription with the ability to sideload Outlook add-ins.
 
+> Note: The Office.js runtime is loaded from Microsoft's CDN inside the dialog page rather than installed from npm.
+
 ## Setup
 
 ```bash
