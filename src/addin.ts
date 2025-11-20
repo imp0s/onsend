@@ -8,7 +8,8 @@ async function getAttachmentContent(
   id: string,
 ): Promise<Office.AttachmentContent> {
   return new Promise((resolve, reject) => {
-    Office.context.mailbox.item.getAttachmentContentAsync(id, (result) => {
+    const item = getMailboxItem();
+    item.getAttachmentContentAsync(id, (result) => {
       if (
         result.status === Office.AsyncResultStatus.Succeeded &&
         result.value
@@ -35,7 +36,8 @@ async function removeAndReplaceAttachment(
   const updatedBase64 = uint8ArrayToBase64(cleaned);
 
   await new Promise<void>((resolve, reject) => {
-    Office.context.mailbox.item.removeAttachmentAsync(
+    const item = getMailboxItem();
+    item.removeAttachmentAsync(
       attachment.id,
       (removeResult) => {
         if (removeResult.status === Office.AsyncResultStatus.Succeeded) {
@@ -48,7 +50,8 @@ async function removeAndReplaceAttachment(
   });
 
   await new Promise<void>((resolve, reject) => {
-    Office.context.mailbox.item.addFileAttachmentFromBase64Async(
+    const item = getMailboxItem();
+    item.addFileAttachmentFromBase64Async(
       updatedBase64,
       attachment.name,
       { isInline: attachment.isInline },
@@ -61,6 +64,14 @@ async function removeAndReplaceAttachment(
       },
     );
   });
+}
+
+function getMailboxItem(): Office.MessageCompose {
+  const item = Office.context?.mailbox?.item as Office.MessageCompose | undefined;
+  if (!item) {
+    throw new Error("Mailbox item unavailable");
+  }
+  return item;
 }
 
 function openConfirmationDialog(message: string): Promise<boolean> {
@@ -81,11 +92,7 @@ function openConfirmationDialog(message: string): Promise<boolean> {
         }
 
         const dialog = result.value;
-        const handler = (arg: Office.DialogMessageReceivedEventArgs) => {
-          dialog.removeEventHandler(
-            Office.EventType.DialogMessageReceived,
-            handler,
-          );
+        const handler = (arg: { message: string }) => {
           dialog.close();
           resolve(arg.message === "yes");
         };
@@ -98,7 +105,7 @@ function openConfirmationDialog(message: string): Promise<boolean> {
 
 export async function promptForCleanup(names: string[]): Promise<boolean> {
   const message = `Clean metadata and comments from: ${names.join(", ")}?`;
-  if (typeof Office !== "undefined" && Office.context?.ui?.displayDialogAsync) {
+  if (typeof Office !== "undefined" && Office.context && Office.context.ui) {
     try {
       return await openConfirmationDialog(message);
     } catch (error) {
@@ -112,7 +119,11 @@ export async function promptForCleanup(names: string[]): Promise<boolean> {
 
 export async function onMessageSend(event: Office.AddinCommands.Event) {
   try {
-    const attachments = Office.context.mailbox.item.attachments || [];
+    const item = getMailboxItem();
+    const attachments = (item.attachments || []).filter(
+      (att): att is Office.AttachmentDetailsCompose =>
+        typeof (att as Office.AttachmentDetailsCompose).isInline === "boolean",
+    );
     const targets = attachments.filter((att) =>
       att.name.toLowerCase().endsWith(".docx"),
     );
