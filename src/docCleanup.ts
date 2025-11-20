@@ -67,15 +67,20 @@ function removeComments(
   return file.async("string").then((xml) => {
     const parsed = parser.parse(xml);
     const commentsRoot = parsed["w:comments"] ?? parsed.comments;
-    if (!commentsRoot || (!commentsRoot["w:comment"] && !commentsRoot.comment))
-      return false;
+    if (!commentsRoot) return false;
 
-    if (Array.isArray(commentsRoot["w:comment"])) {
-      commentsRoot["w:comment"] = [];
+    let changed = false;
+
+    if (commentsRoot["w:comment"]) {
+      delete commentsRoot["w:comment"];
+      changed = true;
     }
-    if (Array.isArray(commentsRoot.comment)) {
-      commentsRoot.comment = [];
+    if (commentsRoot.comment) {
+      delete commentsRoot.comment;
+      changed = true;
     }
+
+    if (!changed) return false;
 
     const rootKey = parsed["w:comments"] ? "w:comments" : "comments";
     const updated = builder.build({ [rootKey]: commentsRoot });
