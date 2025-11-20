@@ -82,15 +82,15 @@ function openConfirmationDialog(message: string): Promise<boolean> {
 
         const dialog = result.value;
         const handler = (arg: Office.DialogMessageReceivedEventArgs) => {
-          dialog.removeEventHandler(Office.EventType.DialogMessageReceived, handler);
+          dialog.removeEventHandler(
+            Office.EventType.DialogMessageReceived,
+            handler,
+          );
           dialog.close();
           resolve(arg.message === "yes");
         };
 
-        dialog.addEventHandler(
-          Office.EventType.DialogMessageReceived,
-          handler,
-        );
+        dialog.addEventHandler(Office.EventType.DialogMessageReceived, handler);
       },
     );
   });
