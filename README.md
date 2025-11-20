@@ -18,14 +18,46 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
 
 > Note: The Office.js runtime is loaded from Microsoft's CDN inside the dialog page rather than installed from npm.
 
-## Setup
+## Clone and configure for Outlook
 
-```bash
-npm install
-npm run build
-```
+1. Clone the repository (replace the URL with your fork if needed):
 
-The build step generates JavaScript in `dist/` for the runtime script.
+   ```bash
+   git clone https://github.com/<your-org>/onsend.git
+   cd onsend
+   npm install
+   ```
+
+2. Build the add-in once to produce the compiled runtime in `dist/`:
+
+   ```bash
+   npm run build
+   ```
+
+3. Host the project root over HTTPS on `https://localhost:3000` (Office add-ins require HTTPS). A simple option is [`http-server`](https://www.npmjs.com/package/http-server):
+
+   ```bash
+   npx http-server -S -C path/to/cert.pem -K path/to/key.pem -p 3000 .
+   ```
+
+4. Point the manifest at your hosting origin. In [`manifest/manifest.xml`](manifest/manifest.xml), update the URLs for `<SourceLocation>` and `<FunctionFile>` so they match your host. For example:
+
+   ```xml
+   <SourceLocation DefaultValue="https://localhost:3000/commands.html" />
+   ...
+   <FunctionFile resid="residFunctionFile" />
+   ...
+   <Url DefaultValue="https://localhost:3000/functions.html" />
+   ```
+
+5. Sideload the updated manifest into Outlook (desktop or web) using Microsoft’s [sideload guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing).
+
+6. Compose a message with one or more `.docx` attachments. When you send the message, the add-in prompts to clean the attachments.
+
+> Example files referenced above:
+> - Manifest definition: [`manifest/manifest.xml`](manifest/manifest.xml)
+> - On-send handler wiring: [`src/addin.ts`](src/addin.ts)
+> - User confirmation dialog: [`public/dialog.html`](public/dialog.html)
 
 ## Running locally
 
@@ -58,3 +90,11 @@ npm test
 ## GitHub Actions
 
 The workflow at `.github/workflows/ci.yml` installs dependencies, builds the TypeScript sources, and executes the Jest test suite to keep the project healthy.
+
+## Getting more testing feedback sooner
+
+To avoid waiting for the GitHub Action to finish, ask Codex (or your local environment) to run the same checks before pushing:
+
+- Run the unit suite locally: `npm test`.
+- Rebuild after changes to catch TypeScript errors early: `npm run build`.
+- If you use Codex as a coding assistant, explicitly request it to execute these commands and report results before finalizing its response. That way you see failures immediately instead of waiting for CI.
