@@ -12,37 +12,47 @@
     <Host Name="Mailbox" />
   </Hosts>
   <Requirements>
-    <Sets DefaultMinVersion="1.10">
-      <Set Name="Mailbox" />
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.5" />
     </Sets>
   </Requirements>
-  <FormSettings>
-    <Form xsi:type="ItemSend">smtp:*</Form>
-  </FormSettings>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:3000/public/commands.html" />
+  </DefaultSettings>
   <Permissions>ReadWriteMailbox</Permissions>
   <Rule xsi:type="RuleCollection" Mode="And">
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit" />
   </Rule>
   <DisableEntityHighlighting>false</DisableEntityHighlighting>
-  <DefaultSettings>
-    <SourceLocation DefaultValue="https://localhost:3000/public/commands.html" />
-  </DefaultSettings>
-  <FunctionFile resid="FunctionFile.Url" />
-  <Runtimes>
-    <Runtime resid="EventRuntime.Url" lifetime="long" />
-  </Runtimes>
-  <ExtensionPoint xsi:type="Events">
-    <Event Type="ItemSend" FunctionExecution="synchronous" FunctionName="onMessageSend" />
-  </ExtensionPoint>
-  <Resources>
-    <bt:Images xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-      <bt:Image id="icon32" DefaultValue="https://localhost:3000/assets/icon-32.png" />
-      <bt:Image id="icon64" DefaultValue="https://localhost:3000/assets/icon-64.png" />
-    </bt:Images>
-    <bt:Urls xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-      <bt:Url id="EventRuntime.Url" DefaultValue="https://localhost:3000/dist/addin.js" />
-      <bt:Url id="Dialog.Url" DefaultValue="https://localhost:3000/public/dialog.html" />
-      <bt:Url id="FunctionFile.Url" DefaultValue="https://localhost:3000/public/functions.html" />
-    </bt:Urls>
-  </Resources>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.10">
+        <bt:Set Name="Mailbox" />
+      </bt:Sets>
+    </Requirements>
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <FunctionFile resid="FunctionFile.Url" />
+          <Runtimes>
+            <Runtime resid="EventRuntime.Url" lifetime="long" />
+          </Runtimes>
+          <ExtensionPoint xsi:type="Events">
+            <Event Type="ItemSend" FunctionExecution="synchronous" FunctionName="onMessageSend" />
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="icon32" DefaultValue="https://localhost:3000/assets/icon-32.png" />
+        <bt:Image id="icon64" DefaultValue="https://localhost:3000/assets/icon-64.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="EventRuntime.Url" DefaultValue="https://localhost:3000/dist/addin.js" />
+        <bt:Url id="Dialog.Url" DefaultValue="https://localhost:3000/public/dialog.html" />
+        <bt:Url id="FunctionFile.Url" DefaultValue="https://localhost:3000/public/functions.html" />
+      </bt:Urls>
+    </Resources>
+  </VersionOverrides>
 </OfficeApp>
