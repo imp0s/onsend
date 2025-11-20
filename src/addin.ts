@@ -91,16 +91,19 @@ function openConfirmationDialog(message: string): Promise<boolean> {
         }
 
         const dialog = result.value;
-        dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg) => {
-          const payload = arg as { message?: string; error?: number };
-          if (typeof payload.error === "number") {
-            reject(new Error(`Dialog error: ${payload.error}`));
-            return;
-          }
+        dialog.addEventHandler(
+          Office.EventType.DialogMessageReceived,
+          (arg) => {
+            const payload = arg as { message?: string; error?: number };
+            if (typeof payload.error === "number") {
+              reject(new Error(`Dialog error: ${payload.error}`));
+              return;
+            }
 
-          dialog.close();
-          resolve(payload.message === "yes");
-        });
+            dialog.close();
+            resolve(payload.message === "yes");
+          },
+        );
       },
     );
   });
