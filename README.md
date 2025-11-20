@@ -23,7 +23,7 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
 1. Clone the repository (replace the URL with your fork if needed):
 
    ```bash
-   git clone https://github.com/<your-org>/onsend.git
+   git clone https://github.com/imp0s/onsend.git
    cd onsend
    npm install
    ```
