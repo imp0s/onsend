@@ -24,6 +24,10 @@
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit" />
   </Rule>
   <DisableEntityHighlighting>false</DisableEntityHighlighting>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:3000/public/commands.html" />
+  </DefaultSettings>
+  <FunctionFile resid="FunctionFile.Url" />
   <Runtimes>
     <Runtime resid="EventRuntime.Url" lifetime="long" />
   </Runtimes>
@@ -38,6 +42,7 @@
     <bt:Urls xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
       <bt:Url id="EventRuntime.Url" DefaultValue="https://localhost:3000/dist/addin.js" />
       <bt:Url id="Dialog.Url" DefaultValue="https://localhost:3000/public/dialog.html" />
+      <bt:Url id="FunctionFile.Url" DefaultValue="https://localhost:3000/public/functions.html" />
     </bt:Urls>
   </Resources>
 </OfficeApp>

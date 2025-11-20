@@ -25,7 +25,7 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
    ```bash
    git clone https://github.com/imp0s/onsend.git
    cd onsend
-   npm install
+   sudo npm install
    ```
 
 2. Build the add-in once to produce the compiled runtime in `dist/`:
@@ -47,17 +47,9 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
    npx http-server -S -C certs/localhost.crt -K certs/localhost.key -p 3000 .
    ```
 
-4. Point the manifest at your hosting origin. In [`manifest/manifest.xml`](manifest/manifest.xml), update the URLs for `<SourceLocation>` and `<FunctionFile>` so they match your host. For example:
+4. The manifest already includes default URLs that point to `https://localhost:3000` for the task pane (`public/commands.html`), function file (`public/functions.html`), dialog, and runtime script. If you host on a different origin/port, update [`manifest/manifest.xml`](manifest/manifest.xml) to match.
 
-   ```xml
-   <SourceLocation DefaultValue="https://localhost:3000/commands.html" />
-   ...
-   <FunctionFile resid="residFunctionFile" />
-   ...
-   <Url DefaultValue="https://localhost:3000/functions.html" />
-   ```
-
-5. Sideload the updated manifest into Outlook (desktop or web) using Microsoft’s [sideload guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing).
+5. Sideload the XML add-in manifest (not the unified Microsoft 365 manifest) into Outlook (desktop or web) using Microsoft’s [add-in only manifest sideloading guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing).
 
 6. Compose a message with one or more `.docx` attachments. When you send the message, the add-in prompts to clean the attachments.
 
@@ -88,11 +80,14 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
 
 ## Testing
 
-Run the unit tests with coverage:
+Make sure dependencies (including Jest) are installed, then run the unit tests with coverage:
 
 ```bash
+sudo npm install
 npm test
 ```
+
+> If `npm test` reports that `jest` is missing, reinstall dependencies with `sudo npm install` to ensure dev dependencies are available.
 
 ## How it works
 
