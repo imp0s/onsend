@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="MailApp">
+  <Id>0b6c8c9c-2f9f-4a0e-b5c9-f7e53a02a2d2</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Example Corp</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Word Attachment Cleaner" />
+  <Description DefaultValue="Cleans metadata and comments from Word attachments before sending." />
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png" />
+  <Hosts>
+    <Host Name="Mailbox" />
+  </Hosts>
+  <Requirements>
+    <Sets DefaultMinVersion="1.10">
+      <Set Name="Mailbox" />
+    </Sets>
+  </Requirements>
+  <FormSettings>
+    <Form xsi:type="ItemSend">smtp:*</Form>
+  </FormSettings>
+  <Permissions>ReadWriteMailbox</Permissions>
+  <Rule xsi:type="RuleCollection" Mode="And">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit" />
+  </Rule>
+  <DisableEntityHighlighting>false</DisableEntityHighlighting>
+  <Runtimes>
+    <Runtime resid="EventRuntime.Url" lifetime="long" />
+  </Runtimes>
+  <ExtensionPoint xsi:type="Events">
+    <Event Type="ItemSend" FunctionExecution="synchronous" FunctionName="onMessageSend" />
+  </ExtensionPoint>
+  <Resources>
+    <bt:Images xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
+      <bt:Image id="icon32" DefaultValue="https://localhost:3000/assets/icon-32.png" />
+      <bt:Image id="icon64" DefaultValue="https://localhost:3000/assets/icon-64.png" />
+    </bt:Images>
+    <bt:Urls xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
+      <bt:Url id="EventRuntime.Url" DefaultValue="https://localhost:3000/dist/addin.js" />
+      <bt:Url id="Dialog.Url" DefaultValue="https://localhost:3000/public/dialog.html" />
+    </bt:Urls>
+  </Resources>
+</OfficeApp>

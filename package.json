@@ -1,0 +1,28 @@
+{
+  "name": "onsend-cleaner",
+  "version": "0.1.0",
+  "description": "Outlook on-send add-in that cleans Word attachment metadata and comments.",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint . --ext .ts,.js"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.3.5",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^22.1.0",
+    "@types/office-js": "^1.0.200",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.3",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.4.5",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0"
+  }
+}
