@@ -3,7 +3,7 @@
 (function () {
   const messageElement = document.getElementById("message");
   const messageFromHash = decodeURIComponent(
-    window.location.hash.replace("#", "")
+    window.location.hash.replace("#", ""),
   );
   messageElement.textContent = messageFromHash || "Clean attachments?";
 

@@ -44,7 +44,9 @@ function removeCoreProperties(
     });
 
     if (changed) {
-      const rootKey = parsed["cp:coreProperties"] ? "cp:coreProperties" : "coreProperties";
+      const rootKey = parsed["cp:coreProperties"]
+        ? "cp:coreProperties"
+        : "coreProperties";
       const updated = builder.build({ [rootKey]: props });
       zip.file(corePath, updated);
     }
@@ -95,7 +97,9 @@ export async function removeMetadataAndComments(
   ]);
 
   if (!metadataRemoved && !commentsRemoved) {
-    return new Uint8Array(buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer));
+    return new Uint8Array(
+      buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer),
+    );
   }
 
   return zip.generateAsync({ type: "uint8array" });

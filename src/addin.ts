@@ -4,7 +4,9 @@ import {
   uint8ArrayToBase64,
 } from "./docCleanup";
 
-async function getAttachmentContent(id: string): Promise<Office.AttachmentContent> {
+async function getAttachmentContent(
+  id: string,
+): Promise<Office.AttachmentContent> {
   return new Promise((resolve, reject) => {
     Office.context.mailbox.item.getAttachmentContentAsync(id, (result) => {
       if (
@@ -80,10 +82,7 @@ function openConfirmationDialog(message: string): Promise<boolean> {
 
         const dialog = result.value;
         const handler = (arg: Office.DialogMessageReceivedEventArgs) => {
-          dialog.removeEventHandler(
-            Office.EventType.DialogMessageReceived,
-            handler,
-          );
+          dialog.removeEventHandler(Office.EventType.DialogMessageReceived, handler);
           dialog.close();
           resolve(arg.message === "yes");
         };
