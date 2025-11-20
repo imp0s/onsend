@@ -1,9 +1,9 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  roots: ['<rootDir>/tests'],
-  moduleFileExtensions: ['ts', 'js', 'json'],
+  preset: "ts-jest",
+  testEnvironment: "node",
+  roots: ["<rootDir>/tests"],
+  moduleFileExtensions: ["ts", "js", "json"],
   collectCoverage: true,
-  coverageDirectory: 'coverage'
+  coverageDirectory: "coverage",
 };
