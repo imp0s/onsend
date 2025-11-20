@@ -10,7 +10,7 @@
   "dependencies": {
     "fast-xml-parser": "^4.3.5",
     "jszip": "^3.10.1",
-    "office-js": "^1.1.100"
+    "office-js": "^1.1.97"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
