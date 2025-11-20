@@ -58,7 +58,7 @@ async function removeAndReplaceAttachment(
         } else {
           reject(addResult.error);
         }
-      }
+      },
     );
   });
 }
