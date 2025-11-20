@@ -37,16 +37,13 @@ async function removeAndReplaceAttachment(
 
   await new Promise<void>((resolve, reject) => {
     const item = getMailboxItem();
-    item.removeAttachmentAsync(
-      attachment.id,
-      (removeResult) => {
-        if (removeResult.status === Office.AsyncResultStatus.Succeeded) {
-          resolve();
-        } else {
-          reject(removeResult.error);
-        }
-      },
-    );
+    item.removeAttachmentAsync(attachment.id, (removeResult) => {
+      if (removeResult.status === Office.AsyncResultStatus.Succeeded) {
+        resolve();
+      } else {
+        reject(removeResult.error);
+      }
+    });
   });
 
   await new Promise<void>((resolve, reject) => {
@@ -61,13 +58,15 @@ async function removeAndReplaceAttachment(
         } else {
           reject(addResult.error);
         }
-      },
+      }
     );
   });
 }
 
 function getMailboxItem(): Office.MessageCompose {
-  const item = Office.context?.mailbox?.item as Office.MessageCompose | undefined;
+  const item = Office.context?.mailbox?.item as
+    | Office.MessageCompose
+    | undefined;
   if (!item) {
     throw new Error("Mailbox item unavailable");
   }
