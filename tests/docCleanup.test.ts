@@ -53,7 +53,7 @@ describe("removeMetadataAndComments", () => {
     expect(coreXml).not.toContain("dcterms:created");
 
     const commentsXml = await zip.file("word/comments.xml")!.async("string");
-    expect(commentsXml).not.toContain("<w:comment");
+    expect(commentsXml).not.toMatch(/<w:comment\b/);
   });
 
   it("leaves files unchanged when nothing is removable", async () => {
