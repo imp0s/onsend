@@ -34,10 +34,17 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
    npm run build
    ```
 
-3. Host the project root over HTTPS on `https://localhost:3000` (Office add-ins require HTTPS). A simple option is [`http-server`](https://www.npmjs.com/package/http-server):
+3. Host the project root over HTTPS on `https://localhost:3000` (Office add-ins require HTTPS even during local sideloading). A simple option is [`http-server`](https://www.npmjs.com/package/http-server). If you do not already have a development certificate, create one and start the server:
 
    ```bash
-   npx http-server -S -C path/to/cert.pem -K path/to/key.pem -p 3000 .
+   # Generate a self-signed certificate valid for localhost (adjust -subj if needed)
+   mkdir -p certs
+   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+     -keyout certs/localhost.key -out certs/localhost.crt \
+     -subj "/CN=localhost"
+
+   # Serve the repo over HTTPS on port 3000
+   npx http-server -S -C certs/localhost.crt -K certs/localhost.key -p 3000 .
    ```
 
 4. Point the manifest at your hosting origin. In [`manifest/manifest.xml`](manifest/manifest.xml), update the URLs for `<SourceLocation>` and `<FunctionFile>` so they match your host. For example:
@@ -65,7 +72,14 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
 2. Serve the repository root over HTTPS on port 3000 (required by Office add-ins). Any static server works; for example:
 
    ```bash
-   npx http-server -S -C path/to/cert.pem -K path/to/key.pem -p 3000 .
+   # Generate a self-signed certificate valid for localhost (adjust -subj if needed)
+   mkdir -p certs
+   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+     -keyout certs/localhost.key -out certs/localhost.crt \
+     -subj "/CN=localhost"
+
+   # Serve the repo over HTTPS on port 3000
+   npx http-server -S -C certs/localhost.crt -K certs/localhost.key -p 3000 .
    ```
 
 3. Update `manifest/manifest.xml` URLs if you host on a different origin/port.
