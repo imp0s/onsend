@@ -91,12 +91,16 @@ function openConfirmationDialog(message: string): Promise<boolean> {
         }
 
         const dialog = result.value;
-        const handler = (arg: { message: string }) => {
-          dialog.close();
-          resolve(arg.message === "yes");
-        };
+        dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg) => {
+          const payload = arg as { message?: string; error?: number };
+          if (typeof payload.error === "number") {
+            reject(new Error(`Dialog error: ${payload.error}`));
+            return;
+          }
 
-        dialog.addEventHandler(Office.EventType.DialogMessageReceived, handler);
+          dialog.close();
+          resolve(payload.message === "yes");
+        });
       },
     );
   });
@@ -119,11 +123,14 @@ export async function promptForCleanup(names: string[]): Promise<boolean> {
 export async function onMessageSend(event: Office.AddinCommands.Event) {
   try {
     const item = getMailboxItem();
-    const attachments = (item.attachments || []).filter(
+    const attachments = (
+      (item as unknown as { attachments?: Office.AttachmentDetailsCompose[] })
+        .attachments || []
+    ).filter(
       (att): att is Office.AttachmentDetailsCompose =>
         typeof (att as Office.AttachmentDetailsCompose).isInline === "boolean",
     );
-    const targets = attachments.filter((att) =>
+    const targets = attachments.filter((att: Office.AttachmentDetailsCompose) =>
       att.name.toLowerCase().endsWith(".docx"),
     );
 
@@ -132,7 +139,9 @@ export async function onMessageSend(event: Office.AddinCommands.Event) {
       return;
     }
 
-    const shouldClean = await promptForCleanup(targets.map((a) => a.name));
+    const shouldClean = await promptForCleanup(
+      targets.map((a: Office.AttachmentDetailsCompose) => a.name),
+    );
     if (!shouldClean) {
       event.completed({ allowEvent: true });
       return;
