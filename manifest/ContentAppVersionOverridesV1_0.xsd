@@ -1,0 +1,22 @@
+<xs:schema id="ContentAppVersionOverrides" elementFormDefault="qualified" version="1.0" targetNamespace="http://schemas.microsoft.com/office/contentappversionoverrides" xmlns="http://schemas.microsoft.com/office/contentappversionoverrides" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+   <xs:import schemaLocation="OfficeAppBasicTypesV1_0.xsd" namespace="http://schemas.microsoft.com/office/officeappbasictypes/1.0"/>
+   <xs:complexType name="WebApplicationScopes">
+     <xs:sequence minOccurs="1" maxOccurs="unbounded">
+       <xs:element name="Scope" type="bt:LongString"/>
+     </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name="WebApplicationInfo">
+     <xs:sequence minOccurs="1" maxOccurs="1">
+       <xs:element name="Id" type="bt:UUID" minOccurs="1" maxOccurs="1"/>
+       <xs:element name="Resource" type="bt:LongString" minOccurs="1" maxOccurs="1"/>
+       <xs:element name="Scopes" type="WebApplicationScopes" minOccurs="1" maxOccurs="1"/>
+     </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name="VersionOverridesV1_0">
+     <xs:sequence>
+       <xs:element name="WebApplicationInfo" type="WebApplicationInfo" minOccurs="0" maxOccurs="1"/>
+       <xs:any id="VersionOverrides" minOccurs="0" maxOccurs="1" namespace="http://schemas.microsoft.com/office/contentappversionoverrides/1.1" processContents="lax"/>
+     </xs:sequence>
+   </xs:complexType>
+   <xs:element name="VersionOverrides" type="VersionOverridesV1_0"/>
+ </xs:schema>

@@ -1,0 +1,263 @@
+<xs:schema id="MailAppVersionOverrides" elementFormDefault="qualified" version="1.0" targetNamespace="http://schemas.microsoft.com/office/mailappversionoverrides" xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:mailor1_1="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+   <xs:import schemaLocation="MailAppVersionOverridesV1_1.xsd" namespace="http://schemas.microsoft.com/office/mailappversionoverrides/1.1"/>
+   <xs:import schemaLocation="OfficeAppBasicTypesV1_0.xsd" namespace="http://schemas.microsoft.com/office/officeappbasictypes/1.0"/>
+   <xs:simpleType name="EventFunctionExecutionType">
+     <xs:restriction base="xs:string">
+       <xs:enumeration value="synchronous"/>
+       <xs:enumeration value="asynchronous"/>
+     </xs:restriction>
+   </xs:simpleType>
+   <xs:complexType name="Event">
+     <xs:attribute name="Type" type="bt:ShortString" use="required"/>
+     <xs:attribute name="FunctionExecution" type="EventFunctionExecutionType" use="required"/>
+     <xs:attribute name="FunctionName" type="bt:LongString" use="required"/>
+   </xs:complexType>
+   <xs:complexType name="ShowTaskpane">
+     <xs:complexContent>
+       <xs:extension base="Action">
+         <xs:sequence>
+           <xs:element name="SourceLocation" type="bt:URLResourceReference" minOccurs="1" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="ExecuteFunction">
+     <xs:complexContent>
+       <xs:extension base="Action">
+         <xs:sequence>
+           <xs:element name="FunctionName" type="bt:LongString" minOccurs="1" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="Action" abstract="true"/>
+   <xs:complexType name="Supertip">
+     <xs:sequence>
+       <xs:element name="Title" type="bt:ShortResourceReference" minOccurs="1" maxOccurs="1"/>
+       <xs:element name="Description" type="bt:LongResourceReference" minOccurs="1" maxOccurs="1"/>
+     </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name="Rule" abstract="true"/>
+   <xs:complexType name="ItemIs">
+     <xs:complexContent>
+       <xs:extension base="Rule">
+         <xs:attribute name="ItemType" type="bt:NonEmptyString" use="required"/>
+         <xs:attribute name="ItemClass" type="bt:NonEmptyString" use="optional"/>
+         <xs:attribute name="IncludeSubClasses" type="xs:boolean" use="optional"/>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="ItemHasKnownEntity">
+     <xs:complexContent>
+       <xs:extension base="Rule">
+         <xs:attribute name="EntityType" type="bt:ShortString" use="required"/>
+         <xs:attribute name="RegExFilter" type="bt:NonEmptyString" use="optional"/>
+         <xs:attribute name="FilterName" type="bt:NonEmptyString" use="optional"/>
+         <xs:attribute name="IgnoreCase" type="xs:boolean" use="optional"/>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:simpleType name="PropertyName">
+     <xs:restriction base="xs:string">
+       <xs:enumeration value="Subject"/>
+       <xs:enumeration value="BodyAsPlaintext"/>
+       <xs:enumeration value="BodyAsHTML"/>
+       <xs:enumeration value="SenderSMTPAddress"/>
+     </xs:restriction>
+   </xs:simpleType>
+   <xs:complexType name="ItemHasRegularExpressionMatch">
+     <xs:complexContent>
+       <xs:extension base="Rule">
+         <xs:attribute name="RegExName" type="bt:NonEmptyString" use="required"/>
+         <xs:attribute name="RegExValue" type="bt:NonEmptyString" use="required"/>
+         <xs:attribute name="PropertyName" type="PropertyName" use="required"/>
+         <xs:attribute name="IgnoreCase" type="xs:boolean" use="optional"/>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="ItemHasAttachment">
+     <xs:complexContent>
+       <xs:extension base="Rule"/>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:simpleType name="LogicalOperator">
+     <xs:restriction base="xs:string">
+       <xs:enumeration value="And"/>
+       <xs:enumeration value="Or"/>
+     </xs:restriction>
+   </xs:simpleType>
+   <xs:complexType name="RuleCollection">
+     <xs:complexContent>
+       <xs:extension base="Rule">
+         <xs:sequence>
+           <xs:element name="Rule" type="Rule" minOccurs="1" maxOccurs="unbounded"/>
+         </xs:sequence>
+         <xs:attribute name="Mode" type="LogicalOperator" use="required"/>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="UIControl" abstract="true">
+     <xs:sequence>
+       <xs:element name="Label" type="bt:ShortResourceReference" minOccurs="1" maxOccurs="1"/>
+       <xs:element name="Supertip" type="Supertip" minOccurs="1" maxOccurs="1"/>
+     </xs:sequence>
+     <xs:attribute name="id" type="bt:ShortString" use="required"/>
+   </xs:complexType>
+   <xs:complexType name="UIControlWithIcon" abstract="true">
+     <xs:complexContent>
+       <xs:extension base="UIControl">
+         <xs:sequence>
+           <xs:element name="Icon" type="bt:IconList" minOccurs="1" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="UIControlWithOptionalIcon" abstract="true">
+     <xs:complexContent>
+       <xs:extension base="UIControl">
+         <xs:sequence>
+           <xs:element name="Icon" type="bt:IconList" minOccurs="0" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="Button">
+     <xs:complexContent>
+       <xs:extension base="UIControlWithIcon">
+         <xs:sequence>
+           <xs:element name="Action" type="Action" minOccurs="1" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="MenuItem">
+     <xs:complexContent>
+       <xs:extension base="UIControlWithOptionalIcon">
+         <xs:sequence>
+           <xs:element name="Action" type="Action" minOccurs="1" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="MenuItems">
+     <xs:sequence>
+       <xs:element name="Item" type="MenuItem" minOccurs="1" maxOccurs="unbounded"/>
+     </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name="Menu">
+     <xs:complexContent>
+       <xs:extension base="UIControlWithIcon">
+         <xs:sequence>
+           <xs:element name="Items" type="MenuItems" minOccurs="1" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="Group">
+     <xs:sequence>
+       <xs:element name="Label" type="bt:ShortResourceReference" minOccurs="1" maxOccurs="1"/>
+       <xs:element name="Control" type="UIControl" minOccurs="1" maxOccurs="unbounded"/>
+     </xs:sequence>
+     <xs:attribute name="id" type="bt:ShortString" use="required"/>
+   </xs:complexType>
+   <xs:complexType name="Tab" abstract="true">
+     <xs:sequence>
+       <xs:element name="Group" type="Group" minOccurs="1" maxOccurs="unbounded"/>
+     </xs:sequence>
+     <xs:attribute name="id" type="bt:ShortString" use="required"/>
+   </xs:complexType>
+   <xs:complexType name="OfficeTab">
+     <xs:complexContent>
+       <xs:extension base="Tab"/>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="CustomTab">
+     <xs:complexContent>
+       <xs:extension base="Tab">
+         <xs:sequence>
+           <xs:element name="Label" type="bt:ShortResourceReference" minOccurs="1" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="ExtensionPoint" abstract="true"/>
+   <xs:complexType name="CommandSurfaceExtensionPoint" abstract="true">
+     <xs:complexContent>
+       <xs:extension base="ExtensionPoint">
+         <xs:sequence>
+           <xs:element name="OfficeTab" type="OfficeTab" minOccurs="0" maxOccurs="unbounded"/>
+           <xs:element name="CustomTab" type="CustomTab" minOccurs="0" maxOccurs="unbounded"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="MessageReadCommandSurface">
+     <xs:complexContent>
+       <xs:extension base="CommandSurfaceExtensionPoint"/>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="MessageComposeCommandSurface">
+     <xs:complexContent>
+       <xs:extension base="CommandSurfaceExtensionPoint"/>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="AppointmentOrganizerCommandSurface">
+     <xs:complexContent>
+       <xs:extension base="CommandSurfaceExtensionPoint"/>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="AppointmentAttendeeCommandSurface">
+     <xs:complexContent>
+       <xs:extension base="CommandSurfaceExtensionPoint"/>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:simpleType name="ST_RequestedHeight">
+     <xs:restriction base="xs:integer">
+       <xs:minInclusive value="32"/>
+       <xs:maxInclusive value="450"/>
+     </xs:restriction>
+   </xs:simpleType>
+   <xs:complexType name="CustomPane">
+     <xs:complexContent>
+       <xs:extension base="ExtensionPoint">
+         <xs:sequence>
+           <xs:element name="RequestedHeight" minOccurs="0" maxOccurs="1" type="ST_RequestedHeight"/>
+           <xs:element name="SourceLocation" type="bt:URLResourceReference" minOccurs="1" maxOccurs="1"/>
+           <xs:element name="Rule" type="Rule" minOccurs="1" maxOccurs="1"/>
+           <xs:element name="DisableEntityHighlighting" type="xs:boolean" minOccurs="0" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="FormFactor">
+     <xs:sequence>
+       <xs:element name="FunctionFile" type="bt:URLResourceReference" minOccurs="0" maxOccurs="1"/>
+       <xs:element name="ExtensionPoint" type="ExtensionPoint" minOccurs="1" maxOccurs="unbounded"/>
+     </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name="Host" abstract="true"/>
+   <xs:complexType name="MailHost">
+     <xs:complexContent>
+       <xs:extension base="Host">
+         <xs:sequence>
+           <xs:element name="DesktopFormFactor" type="FormFactor" minOccurs="0" maxOccurs="1"/>
+         </xs:sequence>
+       </xs:extension>
+     </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name="Hosts">
+     <xs:sequence minOccurs="1" maxOccurs="unbounded">
+       <xs:element name="Host" type="Host"/>
+     </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name="VersionOverridesV1_0">
+     <xs:sequence>
+       <xs:element name="Description" type="bt:LongResourceReference" minOccurs="0" maxOccurs="1"/>
+       <xs:element name="Requirements" type="bt:Requirements" minOccurs="0" maxOccurs="1"/>
+       <xs:element name="Hosts" type="Hosts" minOccurs="0" maxOccurs="1"/>
+       <xs:element name="Resources" type="bt:Resources" minOccurs="0" maxOccurs="1"/>
+       <xs:element ref="mailor1_1:VersionOverrides" minOccurs="0" maxOccurs="1"/>
+     </xs:sequence>
+   </xs:complexType>
+   <xs:element name="VersionOverrides" type="VersionOverridesV1_0"/>
+ </xs:schema>
