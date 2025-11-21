@@ -1,11 +1,5 @@
-import JSZip from "jszip";
-import { XMLBuilder, XMLParser } from "fast-xml-parser";
-
-export interface CleanupSummary {
-  updated: boolean;
-  removedComments: boolean;
-  removedMetadata: boolean;
-}
+const JSZip = require("jszip");
+const { XMLBuilder, XMLParser } = require("fast-xml-parser");
 
 const xmlOptions = {
   ignoreAttributes: false,
@@ -13,11 +7,7 @@ const xmlOptions = {
   suppressBooleanAttributes: false,
 };
 
-function removeCoreProperties(
-  parser: XMLParser,
-  builder: XMLBuilder,
-  zip: JSZip,
-): Promise<boolean> {
+function removeCoreProperties(parser, builder, zip) {
   const corePath = "docProps/core.xml";
   const file = zip.file(corePath);
   if (!file) return Promise.resolve(false);
@@ -55,11 +45,7 @@ function removeCoreProperties(
   });
 }
 
-function removeComments(
-  parser: XMLParser,
-  builder: XMLBuilder,
-  zip: JSZip,
-): Promise<boolean> {
+function removeComments(parser, builder, zip) {
   const commentsPath = "word/comments.xml";
   const file = zip.file(commentsPath);
   if (!file) return Promise.resolve(false);
@@ -89,9 +75,7 @@ function removeComments(
   });
 }
 
-export async function removeMetadataAndComments(
-  buffer: ArrayBuffer | Uint8Array | Buffer,
-): Promise<Uint8Array> {
+async function removeMetadataAndComments(buffer) {
   const zip = await JSZip.loadAsync(buffer);
   const parser = new XMLParser(xmlOptions);
   const builder = new XMLBuilder({ ...xmlOptions, format: true });
@@ -110,11 +94,42 @@ export async function removeMetadataAndComments(
   return zip.generateAsync({ type: "uint8array" });
 }
 
-export function base64ToUint8Array(base64: string): Uint8Array {
-  const raw = Buffer.from(base64, "base64");
-  return new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+function base64ToUint8Array(base64) {
+  if (typeof Buffer !== "undefined") {
+    const raw = Buffer.from(base64, "base64");
+    return new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+  }
+
+  if (typeof atob === "function") {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  throw new Error("No base64 decoder available");
 }
 
-export function uint8ArrayToBase64(data: Uint8Array): string {
-  return Buffer.from(data).toString("base64");
+function uint8ArrayToBase64(data) {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(data).toString("base64");
+  }
+
+  if (typeof btoa === "function") {
+    let binary = "";
+    for (let i = 0; i < data.byteLength; i += 1) {
+      binary += String.fromCharCode(data[i]);
+    }
+    return btoa(binary);
+  }
+
+  throw new Error("No base64 encoder available");
 }
+
+module.exports = {
+  removeMetadataAndComments,
+  base64ToUint8Array,
+  uint8ArrayToBase64,
+};
