@@ -8,7 +8,10 @@ async function getAttachmentContent(id) {
   return new Promise((resolve, reject) => {
     const item = getMailboxItem();
     item.getAttachmentContentAsync(id, (result) => {
-      if (result.status === Office.AsyncResultStatus.Succeeded && result.value) {
+      if (
+        result.status === Office.AsyncResultStatus.Succeeded &&
+        result.value
+      ) {
         resolve(result.value);
       } else {
         reject(result.error);
@@ -82,16 +85,19 @@ function openConfirmationDialog(message) {
         }
 
         const dialog = result.value;
-        dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg) => {
-          const payload = arg;
-          if (typeof payload.error === "number") {
-            reject(new Error(`Dialog error: ${payload.error}`));
-            return;
-          }
+        dialog.addEventHandler(
+          Office.EventType.DialogMessageReceived,
+          (arg) => {
+            const payload = arg;
+            if (typeof payload.error === "number") {
+              reject(new Error(`Dialog error: ${payload.error}`));
+              return;
+            }
 
-          dialog.close();
-          resolve(payload.message === "yes");
-        });
+            dialog.close();
+            resolve(payload.message === "yes");
+          },
+        );
       },
     );
   });
