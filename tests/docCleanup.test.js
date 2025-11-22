@@ -1,14 +1,11 @@
-import JSZip from "jszip";
-import {
+const JSZip = require("jszip");
+const {
   base64ToUint8Array,
   removeMetadataAndComments,
   uint8ArrayToBase64,
-} from "../src/docCleanup";
+} = require("../src/docCleanup");
 
-async function buildDocx(
-  withComments = true,
-  withMetadata = true,
-): Promise<Uint8Array> {
+async function buildDocx(withComments = true, withMetadata = true) {
   const zip = new JSZip();
   zip.file(
     "[Content_Types].xml",
@@ -47,12 +44,12 @@ describe("removeMetadataAndComments", () => {
     const cleaned = await removeMetadataAndComments(sample);
     const zip = await JSZip.loadAsync(cleaned);
 
-    const coreXml = await zip.file("docProps/core.xml")!.async("string");
+    const coreXml = await zip.file("docProps/core.xml").async("string");
     expect(coreXml).not.toContain("dc:creator");
     expect(coreXml).not.toContain("cp:lastModifiedBy");
     expect(coreXml).not.toContain("dcterms:created");
 
-    const commentsXml = await zip.file("word/comments.xml")!.async("string");
+    const commentsXml = await zip.file("word/comments.xml").async("string");
     expect(commentsXml).not.toMatch(/<w:comment\b/);
   });
 

@@ -54,7 +54,7 @@
         <bt:Image id="icon64" DefaultValue="https://localhost:3000/assets/icon-64.png" />
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="EventRuntime.Url" DefaultValue="https://localhost:3000/dist/src/addin.js" />
+        <bt:Url id="EventRuntime.Url" DefaultValue="https://localhost:3000/public/functions.html" />
         <bt:Url id="Dialog.Url" DefaultValue="https://localhost:3000/public/dialog.html" />
         <bt:Url id="FunctionFile.Url" DefaultValue="https://localhost:3000/public/functions.html" />
       </bt:Urls>
