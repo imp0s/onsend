@@ -4,7 +4,7 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
 
 ## Project layout
 
-- `src/`: TypeScript sources for the add-in runtime and attachment cleanup helpers.
+- `src/`: JavaScript sources for the add-in runtime and attachment cleanup helpers.
 - `public/`: Dialog assets for user confirmation.
 - `manifest/manifest.xml`: Mail add-in manifest configured for the item-send event.
 - `.github/workflows/ci.yml`: GitHub Actions workflow to build and test.
@@ -43,8 +43,12 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
      -keyout certs/localhost.key -out certs/localhost.crt \
      -subj "/CN=localhost"
 
-   # Serve the repo over HTTPS on port 3000
-   npx http-server -S -C certs/localhost.crt -K certs/localhost.key -p 3000 .
+   # Serve the repo over HTTPS on port 3000 with no caching
+   npx http-server -S -C certs/localhost.crt -K certs/localhost.key -p 3000 . \
+     -c-1 \
+     -H "Cache-Control: no-store, must-revalidate" \
+     -H "Pragma: no-cache" \
+     -H "Expires: 0"
    ```
 
 4. The manifest already includes default URLs that point to `https://localhost:3000` for the task pane (`public/commands.html`), function file (`public/functions.html`), dialog, and runtime script. If you host on a different origin/port, update [`manifest/manifest.xml`](manifest/manifest.xml) to match.
@@ -55,7 +59,7 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
 
 > Example files referenced above:
 > - Manifest definition: [`manifest/manifest.xml`](manifest/manifest.xml)
-> - On-send handler wiring: [`src/addin.ts`](src/addin.ts)
+> - On-send handler wiring: [`src/addin.js`](src/addin.js)
 > - User confirmation dialog: [`public/dialog.html`](public/dialog.html)
 
 ## Running locally
@@ -70,8 +74,12 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
      -keyout certs/localhost.key -out certs/localhost.crt \
      -subj "/CN=localhost"
 
-   # Serve the repo over HTTPS on port 3000
-   npx http-server -S -C certs/localhost.crt -K certs/localhost.key -p 3000 .
+   # Serve the repo over HTTPS on port 3000 with no caching
+   npx http-server -S -C certs/localhost.crt -K certs/localhost.key -p 3000 . \
+     -c-1 \
+     -H "Cache-Control: no-store, must-revalidate" \
+     -H "Pragma: no-cache" \
+     -H "Expires: 0"
    ```
 
 3. Update `manifest/manifest.xml` URLs if you host on a different origin/port.
@@ -91,19 +99,19 @@ npm test
 
 ## How it works
 
-- The on-send handler (`onMessageSend` in `src/addin.ts`) enumerates attachments and filters for `.docx` files.
+- The on-send handler (`onMessageSend` in `src/addin.js`) enumerates attachments and filters for `.docx` files.
 - The user is prompted via an Office dialog (backed by `public/dialog.html`) to decide whether to clean the files.
-- If confirmed, each Word attachment is downloaded, cleaned with `removeMetadataAndComments` from `src/docCleanup.ts`, reattached, and the send continues.
+- If confirmed, each Word attachment is downloaded, cleaned with `removeMetadataAndComments` from `src/docCleanup.js`, reattached, and the send continues.
 - The cleanup routine strips common core properties (creator, modified by, created/modified timestamps, last printed) and removes all Word comments by clearing `word/comments.xml`.
 
 ## GitHub Actions
 
-The workflow at `.github/workflows/ci.yml` installs dependencies, builds the TypeScript sources, and executes the Jest test suite to keep the project healthy.
+The workflow at `.github/workflows/ci.yml` installs dependencies, builds the JavaScript bundle, and executes the Jest test suite to keep the project healthy.
 
 ## Getting more testing feedback sooner
 
 To avoid waiting for the GitHub Action to finish, ask Codex (or your local environment) to run the same checks before pushing:
 
 - Run the unit suite locally: `npm test`.
-- Rebuild after changes to catch TypeScript errors early: `npm run build`.
+- Rebuild after changes to catch bundle errors early: `npm run build`.
 - If you use Codex as a coding assistant, explicitly request it to execute these commands and report results before finalizing its response. That way you see failures immediately instead of waiting for CI.
