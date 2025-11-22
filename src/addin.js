@@ -149,8 +149,16 @@ async function onMessageSend(event) {
   }
 }
 
-if (typeof Office !== "undefined" && Office.actions) {
-  Office.actions.associate("onMessageSend", onMessageSend);
+if (typeof Office !== "undefined" && Office.onReady) {
+  Office.onReady(() => {
+    if (Office.actions) {
+      Office.actions.associate("onMessageSend", onMessageSend);
+    }
+
+    if (typeof window !== "undefined") {
+      window.onMessageSend = onMessageSend;
+    }
+  });
 }
 
 module.exports = {

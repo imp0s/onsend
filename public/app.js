@@ -4258,15 +4258,18 @@ var WordAttachmentCleaner = (() => {
                 return;
               }
               const dialog = result.value;
-              dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg) => {
-                const payload = arg;
-                if (typeof payload.error === "number") {
-                  reject(new Error(`Dialog error: ${payload.error}`));
-                  return;
+              dialog.addEventHandler(
+                Office.EventType.DialogMessageReceived,
+                (arg) => {
+                  const payload = arg;
+                  if (typeof payload.error === "number") {
+                    reject(new Error(`Dialog error: ${payload.error}`));
+                    return;
+                  }
+                  dialog.close();
+                  resolve(payload.message === "yes");
                 }
-                dialog.close();
-                resolve(payload.message === "yes");
-              });
+              );
             }
           );
         });
@@ -4310,8 +4313,15 @@ var WordAttachmentCleaner = (() => {
           event.completed({ allowEvent: true });
         }
       }
-      if (typeof Office !== "undefined" && Office.actions) {
-        Office.actions.associate("onMessageSend", onMessageSend);
+      if (typeof Office !== "undefined" && Office.onReady) {
+        Office.onReady(() => {
+          if (Office.actions) {
+            Office.actions.associate("onMessageSend", onMessageSend);
+          }
+          if (typeof window !== "undefined") {
+            window.onMessageSend = onMessageSend;
+          }
+        });
       }
       module.exports = {
         onMessageSend,
