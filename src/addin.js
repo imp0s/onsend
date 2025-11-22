@@ -11,25 +11,94 @@ function normalizeAttachmentId(attachment) {
 }
 
 async function getAttachmentContent(id) {
-  return new Promise((resolve, reject) => {
-    const item = getMailboxItem();
-    console.log("[addin] fetching attachment content", id);
-    item.getAttachmentContentAsync(id, (result) => {
+  const item = getMailboxItem();
+  console.log("[addin] fetching attachment content", id);
+
+  const result = await new Promise((resolve, reject) => {
+    item.getAttachmentContentAsync(id, (asyncResult) => {
       if (
-        result.status === Office.AsyncResultStatus.Succeeded &&
-        result.value
+        asyncResult.status === Office.AsyncResultStatus.Succeeded &&
+        asyncResult.value
       ) {
-        console.log("[addin] fetched attachment content", {
-          id,
-          format: result.value.format,
-        });
-        resolve(result.value);
+        resolve(asyncResult.value);
       } else {
-        console.error("[addin] failed to fetch attachment", id, result.error);
-        reject(result.error);
+        reject(asyncResult.error);
       }
     });
   });
+
+  if (result.format === Office.MailboxEnums.AttachmentContentFormat.FileUrl) {
+    return getAttachmentContentWithCors(id, result.content);
+  }
+
+  if (result.format === Office.MailboxEnums.AttachmentContentFormat.Base64) {
+    console.log("[addin] fetched attachment content", {
+      id,
+      format: result.format,
+    });
+    return result;
+  }
+
+  console.error("[addin] unsupported attachment content format", {
+    id,
+    format: result.format,
+  });
+  throw new Error("Unsupported attachment format");
+}
+
+function arrayBufferToBase64(buffer) {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(new Uint8Array(buffer)).toString("base64");
+  }
+
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+async function getCallbackToken() {
+  return new Promise((resolve, reject) => {
+    const mailbox = Office.context?.mailbox;
+    if (!mailbox || typeof mailbox.getCallbackTokenAsync !== "function") {
+      reject(new Error("Mailbox callback token unavailable"));
+      return;
+    }
+
+    mailbox.getCallbackTokenAsync({ isRest: true }, (result) => {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        resolve(result.value);
+      } else {
+        reject(result.error || new Error("Failed to acquire callback token"));
+      }
+    });
+  });
+}
+
+async function getAttachmentContentWithCors(id, url) {
+  const token = await getCallbackToken();
+  console.log("[addin] fetching fileUrl content with token", { id });
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    mode: "cors",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to download attachment (${response.status})`,
+    );
+    console.error("[addin] download failed", { id, status: response.status });
+    throw error;
+  }
+
+  const buffer = await response.arrayBuffer();
+  return {
+    format: Office.MailboxEnums.AttachmentContentFormat.Base64,
+    content: arrayBufferToBase64(buffer),
+  };
 }
 
 async function removeAndReplaceAttachment(attachment) {
@@ -247,7 +316,9 @@ module.exports = {
   promptForCleanup,
   removeMetadataAndComments,
   getAttachments,
+  getAttachmentContent,
   base64ToUint8Array,
   uint8ArrayToBase64,
   normalizeAttachmentId,
+  arrayBufferToBase64,
 };
