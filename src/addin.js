@@ -32,7 +32,37 @@ async function removeAndReplaceAttachment(attachment) {
     name: attachment.name,
     isInline: attachment.isInline,
   });
-  const content = await getAttachmentContent(attachment.id);
+  let content;
+  try {
+    content = await getAttachmentContent(attachment.id);
+  } catch (error) {
+    if (error?.name === "InvalidAttachmentId") {
+      console.warn(
+        "[addin] attachment id invalid; refreshing attachment list",
+        attachment.id,
+      );
+      const refreshed = await getAttachments();
+      const next = refreshed.find(
+        (att) =>
+          att.name === attachment.name &&
+          typeof att.isInline === "boolean" &&
+          att.isInline === attachment.isInline,
+      );
+
+      if (!next) {
+        console.error(
+          "[addin] unable to find replacement attachment after refresh",
+          attachment.name,
+        );
+        throw error;
+      }
+
+      console.log("[addin] retrying content fetch with refreshed id", next.id);
+      content = await getAttachmentContent(next.id);
+    } else {
+      throw error;
+    }
+  }
   if (content.format !== Office.MailboxEnums.AttachmentContentFormat.Base64) {
     console.error("[addin] unsupported attachment format", {
       id: attachment.id,
