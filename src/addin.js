@@ -148,11 +148,36 @@ async function promptForCleanup(names) {
   return typeof window !== "undefined" ? window.confirm(message) : true;
 }
 
+async function getAttachments() {
+  const item = getMailboxItem();
+  if (typeof item.getAttachmentsAsync !== "function") {
+    const cached = Array.isArray(item.attachments) ? item.attachments : [];
+    console.log("[addin] attachments pulled from cached item state", {
+      total: cached.length,
+    });
+    return cached;
+  }
+
+  return new Promise((resolve, reject) => {
+    item.getAttachmentsAsync((result) => {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        const list = Array.isArray(result.value) ? result.value : [];
+        console.log("[addin] attachments fetched via getAttachmentsAsync", {
+          total: list.length,
+        });
+        resolve(list);
+      } else {
+        console.error("[addin] failed to fetch attachments", result.error);
+        reject(result.error);
+      }
+    });
+  });
+}
+
 async function onMessageSend(event) {
   try {
     console.log("[addin] onMessageSend invoked");
-    const item = getMailboxItem();
-    const attachments = ((item && item.attachments) || []).filter(
+    const attachments = (await getAttachments()).filter(
       (att) => typeof att.isInline === "boolean",
     );
     const targets = attachments.filter((att) =>
@@ -209,6 +234,7 @@ module.exports = {
   onMessageSend,
   promptForCleanup,
   removeMetadataAndComments,
+  getAttachments,
   base64ToUint8Array,
   uint8ArrayToBase64,
 };

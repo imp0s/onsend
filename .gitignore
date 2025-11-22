@@ -2,3 +2,4 @@ dist/*
 certs/*
 node_modules/*
 .ds_store
+public/app.js
