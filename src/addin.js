@@ -5,8 +5,8 @@ const {
 } = require("./docCleanup");
 
 function normalizeAttachmentId(attachment) {
-  if (attachment.attachmentId) return attachment.attachmentId;
   if (attachment.id) return attachment.id;
+  if (attachment.attachmentId) return attachment.attachmentId;
   throw new Error("Attachment identifier missing");
 }
 
@@ -249,4 +249,5 @@ module.exports = {
   getAttachments,
   base64ToUint8Array,
   uint8ArrayToBase64,
+  normalizeAttachmentId,
 };
