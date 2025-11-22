@@ -12,6 +12,11 @@ function normalizeAttachmentId(attachment) {
 
 async function getAttachmentContent(id) {
   const item = getMailboxItem();
+  const ewsContent = await tryGetAttachmentContentFromEws(id);
+  if (ewsContent) {
+    return ewsContent;
+  }
+
   console.log("[addin] fetching attachment content", id);
 
   const result = await new Promise((resolve, reject) => {
@@ -28,7 +33,13 @@ async function getAttachmentContent(id) {
   });
 
   if (result.format === Office.MailboxEnums.AttachmentContentFormat.FileUrl) {
-    return getAttachmentContentFromEws(id);
+    const fallback = await tryGetAttachmentContentFromEws(id);
+    if (fallback) {
+      return fallback;
+    }
+
+    console.warn("[addin] falling back to fileUrl content fetch", { id });
+    return result;
   }
 
   if (result.format === Office.MailboxEnums.AttachmentContentFormat.Base64) {
@@ -46,10 +57,10 @@ async function getAttachmentContent(id) {
   throw new Error("Unsupported attachment format");
 }
 
-async function getAttachmentContentFromEws(id) {
+async function tryGetAttachmentContentFromEws(id) {
   const mailbox = Office.context?.mailbox;
   if (!mailbox || typeof mailbox.makeEwsRequestAsync !== "function") {
-    throw new Error("EWS is not available to fetch attachments");
+    return null;
   }
 
   const ewsRequest = `<?xml version="1.0" encoding="utf-8"?>
@@ -59,6 +70,9 @@ async function getAttachmentContentFromEws(id) {
   </soap:Header>
   <soap:Body>
     <m:GetAttachment>
+      <m:AttachmentShape>
+        <t:IncludeMimeContent>true</t:IncludeMimeContent>
+      </m:AttachmentShape>
       <m:AttachmentIds>
         <t:AttachmentId Id="${id}" />
       </m:AttachmentIds>
@@ -81,7 +95,7 @@ async function getAttachmentContentFromEws(id) {
   const match = ewsResponse.match(/<t:Content>([\s\S]*?)<\/t:Content>/i);
   if (!match || !match[1]) {
     console.error("[addin] EWS response missing content", { id });
-    throw new Error("Attachment content missing in EWS response");
+    return null;
   }
 
   console.log("[addin] fetched attachment via EWS", { id });
