@@ -28,7 +28,7 @@ async function getAttachmentContent(id) {
   });
 
   if (result.format === Office.MailboxEnums.AttachmentContentFormat.FileUrl) {
-    return getAttachmentContentWithCors(id, result.content);
+    return getAttachmentContentFromEws(id);
   }
 
   if (result.format === Office.MailboxEnums.AttachmentContentFormat.Base64) {
@@ -46,58 +46,48 @@ async function getAttachmentContent(id) {
   throw new Error("Unsupported attachment format");
 }
 
-function arrayBufferToBase64(buffer) {
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(new Uint8Array(buffer)).toString("base64");
+async function getAttachmentContentFromEws(id) {
+  const mailbox = Office.context?.mailbox;
+  if (!mailbox || typeof mailbox.makeEwsRequestAsync !== "function") {
+    throw new Error("EWS is not available to fetch attachments");
   }
 
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.byteLength; i += 1) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
+  const ewsRequest = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages">
+  <soap:Header>
+    <t:RequestServerVersion Version="Exchange2016" />
+  </soap:Header>
+  <soap:Body>
+    <m:GetAttachment>
+      <m:AttachmentIds>
+        <t:AttachmentId Id="${id}" />
+      </m:AttachmentIds>
+    </m:GetAttachment>
+  </soap:Body>
+</soap:Envelope>`;
 
-async function getCallbackToken() {
-  return new Promise((resolve, reject) => {
-    const mailbox = Office.context?.mailbox;
-    if (!mailbox || typeof mailbox.getCallbackTokenAsync !== "function") {
-      reject(new Error("Mailbox callback token unavailable"));
-      return;
-    }
-
-    mailbox.getCallbackTokenAsync({ isRest: true }, (result) => {
-      if (result.status === Office.AsyncResultStatus.Succeeded) {
-        resolve(result.value);
+  const ewsResponse = await new Promise((resolve, reject) => {
+    mailbox.makeEwsRequestAsync(ewsRequest, (asyncResult) => {
+      if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+        resolve(asyncResult.value);
       } else {
-        reject(result.error || new Error("Failed to acquire callback token"));
+        reject(
+          asyncResult.error || new Error("Failed to fetch attachment via EWS"),
+        );
       }
     });
   });
-}
 
-async function getAttachmentContentWithCors(id, url) {
-  const token = await getCallbackToken();
-  console.log("[addin] fetching fileUrl content with token", { id });
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    mode: "cors",
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    const error = new Error(
-      `Failed to download attachment (${response.status})`,
-    );
-    console.error("[addin] download failed", { id, status: response.status });
-    throw error;
+  const match = ewsResponse.match(/<t:Content>([\s\S]*?)<\/t:Content>/i);
+  if (!match || !match[1]) {
+    console.error("[addin] EWS response missing content", { id });
+    throw new Error("Attachment content missing in EWS response");
   }
 
-  const buffer = await response.arrayBuffer();
+  console.log("[addin] fetched attachment via EWS", { id });
   return {
     format: Office.MailboxEnums.AttachmentContentFormat.Base64,
-    content: arrayBufferToBase64(buffer),
+    content: match[1],
   };
 }
 
@@ -320,5 +310,4 @@ module.exports = {
   base64ToUint8Array,
   uint8ArrayToBase64,
   normalizeAttachmentId,
-  arrayBufferToBase64,
 };

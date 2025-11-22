@@ -21,11 +21,6 @@ describe("getAttachmentContent", () => {
   const base64Dummy = Buffer.from("dummy").toString("base64");
 
   beforeEach(() => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => new TextEncoder().encode("dummy").buffer,
-    });
-
     global.Office = {
       AsyncResultStatus: { Succeeded: "succeeded" },
       MailboxEnums: {
@@ -33,9 +28,6 @@ describe("getAttachmentContent", () => {
       },
       context: {
         mailbox: {
-          getCallbackTokenAsync: jest.fn((opts, cb) =>
-            cb({ status: "succeeded", value: "token123" }),
-          ),
           item: {
             getAttachmentContentAsync: jest.fn((id, cb) =>
               cb({
@@ -47,6 +39,14 @@ describe("getAttachmentContent", () => {
               }),
             ),
           },
+          makeEwsRequestAsync: jest.fn((request, cb) => {
+            const ewsResponse = `<?xml version="1.0" encoding="utf-8"?>\n<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">\n  <soap:Body>\n    <m:GetAttachmentResponse xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">\n      <m:ResponseMessages>\n        <m:GetAttachmentResponseMessage ResponseClass="Success">\n          <m:Attachments>\n            <t:FileAttachment><t:Content>${base64Dummy}</t:Content></t:FileAttachment>\n          </m:Attachments>\n        </m:GetAttachmentResponseMessage>\n      </m:ResponseMessages>\n    </m:GetAttachmentResponse>\n  </soap:Body>\n</soap:Envelope>`;
+
+            cb({
+              status: "succeeded",
+              value: ewsResponse,
+            });
+          }),
         },
       },
     };
@@ -55,19 +55,14 @@ describe("getAttachmentContent", () => {
   afterEach(() => {
     jest.resetAllMocks();
     delete global.Office;
-    delete global.fetch;
   });
 
-  it("downloads fileUrl content with the callback token and returns base64", async () => {
+  it("downloads fileUrl content via EWS and returns base64", async () => {
     const result = await getAttachmentContent("att-1");
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      "https://attachment.example.com/file",
-      expect.objectContaining({
-        headers: { Authorization: "Bearer token123" },
-        mode: "cors",
-        credentials: "include",
-      }),
+    expect(Office.context.mailbox.makeEwsRequestAsync).toHaveBeenCalledWith(
+      expect.stringContaining("GetAttachment"),
+      expect.any(Function),
     );
 
     expect(result).toEqual({
