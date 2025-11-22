@@ -4,6 +4,12 @@ const {
   uint8ArrayToBase64,
 } = require("./docCleanup");
 
+function normalizeAttachmentId(attachment) {
+  if (attachment.attachmentId) return attachment.attachmentId;
+  if (attachment.id) return attachment.id;
+  throw new Error("Attachment identifier missing");
+}
+
 async function getAttachmentContent(id) {
   return new Promise((resolve, reject) => {
     const item = getMailboxItem();
@@ -28,41 +34,11 @@ async function getAttachmentContent(id) {
 
 async function removeAndReplaceAttachment(attachment) {
   console.log("[addin] cleaning attachment", {
-    id: attachment.id,
+    id: normalizeAttachmentId(attachment),
     name: attachment.name,
     isInline: attachment.isInline,
   });
-  let content;
-  try {
-    content = await getAttachmentContent(attachment.id);
-  } catch (error) {
-    if (error?.name === "InvalidAttachmentId") {
-      console.warn(
-        "[addin] attachment id invalid; refreshing attachment list",
-        attachment.id,
-      );
-      const refreshed = await getAttachments();
-      const next = refreshed.find(
-        (att) =>
-          att.name === attachment.name &&
-          typeof att.isInline === "boolean" &&
-          att.isInline === attachment.isInline,
-      );
-
-      if (!next) {
-        console.error(
-          "[addin] unable to find replacement attachment after refresh",
-          attachment.name,
-        );
-        throw error;
-      }
-
-      console.log("[addin] retrying content fetch with refreshed id", next.id);
-      content = await getAttachmentContent(next.id);
-    } else {
-      throw error;
-    }
-  }
+  const content = await getAttachmentContent(normalizeAttachmentId(attachment));
   if (content.format !== Office.MailboxEnums.AttachmentContentFormat.Base64) {
     console.error("[addin] unsupported attachment format", {
       id: attachment.id,
@@ -78,19 +54,25 @@ async function removeAndReplaceAttachment(attachment) {
 
   await new Promise((resolve, reject) => {
     const item = getMailboxItem();
-    item.removeAttachmentAsync(attachment.id, (removeResult) => {
-      if (removeResult.status === Office.AsyncResultStatus.Succeeded) {
-        console.log("[addin] removed attachment", attachment.id);
-        resolve();
-      } else {
-        console.error(
-          "[addin] failed to remove attachment",
-          attachment.id,
-          removeResult.error,
-        );
-        reject(removeResult.error);
-      }
-    });
+    item.removeAttachmentAsync(
+      normalizeAttachmentId(attachment),
+      (removeResult) => {
+        if (removeResult.status === Office.AsyncResultStatus.Succeeded) {
+          console.log(
+            "[addin] removed attachment",
+            normalizeAttachmentId(attachment),
+          );
+          resolve();
+        } else {
+          console.error(
+            "[addin] failed to remove attachment",
+            normalizeAttachmentId(attachment),
+            removeResult.error,
+          );
+          reject(removeResult.error);
+        }
+      },
+    );
   });
 
   await new Promise((resolve, reject) => {
