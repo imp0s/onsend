@@ -7,7 +7,8 @@ describe("domain safety helpers with configured allowances", () => {
     jest.resetModules();
     global.EmailSafetyConfig = { allowedDomainExtensions };
 
-    ({ allowedDomainExtensions: [primaryDomain] = [] } = global.EmailSafetyConfig);
+    ({ allowedDomainExtensions: [primaryDomain] = [] } =
+      global.EmailSafetyConfig);
 
     global.Office = {
       context: {
