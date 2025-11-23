@@ -1,6 +1,8 @@
-# Email Safety Checker
+# Outlook Email Safety Checker
 
-This project contains an Outlook on-send add-in that blocks emails with attachments and prevents sending to recipients outside your domain.
+An Outlook on-send add-in that blocks emails with attachments and prevents sending to recipients outside your domain. Can be used if your organisation is worried about not having support for tools such as Tessian, Metadact within the Microsoft 365 service.
+
+A simple tool to protect against sending emails outside the organisation or with attachments containing inappropriate metadata or comments.
 
 ## Project layout
 
@@ -53,7 +55,10 @@ This project contains an Outlook on-send add-in that blocks emails with attachme
 
 4. The manifest includes default URLs that point to `https://localhost:3000` for the function file (`public/functions.html`) and runtime script. If you host on a different origin/port, update [`manifest/manifest.xml`](manifest/manifest.xml) to match.
 
-5. Sideload the XML add-in manifest into Outlook (desktop or web) using Microsoft’s [add-in only manifest sideloading guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing).
+5. Sideload the XML add-in manifest into Outlook (desktop or web) using Microsoft’s [add-in only manifest sideloading guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing). This effectively means:
+   1. Visit https://outlook.office365.com/mail/inclientstore
+   1. Log in
+   1. Add your custom add-in by uploading the `metadata.xml` file.
 
 6. Compose a message. The add-in blocks the send if any attachments are present or if recipients use domains outside the allowed list (the sender domain by default).
 
@@ -78,12 +83,15 @@ This project contains an Outlook on-send add-in that blocks emails with attachme
    ```
 
 3. Update `manifest/manifest.xml` URLs if you host on a different origin/port.
-4. Sideload the manifest into Outlook (desktop or web) following Microsoft's [sideload guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing).
+4. Sideload the manifest into Outlook (desktop or web) following Microsoft's [sideload guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing). This effectively means:
+   1. Visit https://outlook.office365.com/mail/inclientstore
+   1. Log in
+   1. Add your custom add-in by uploading the `metadata.xml` file.
 5. Compose a message. The add-in stops sends that include attachments or recipients outside the permitted domain.
 
 ## Configuring allowed domains
 
-By default, the add-in uses the sender's domain (from the signed-in account) to enforce recipient matching. If the sender's domain cannot be resolved, the fallback domains defined in [`src/config.js`](src/config.js) are used. Update the `allowedDomainExtensions` array with your approved domains or suffixes.
+By default, the add-in uses the sender's domain (from the signed-in account) to enforce recipient matching. Domains defined in [`src/config.js`](src/config.js) are appended to the 'allow list'. Update the `allowedDomainExtensions` array with your approved domains or suffixes.
 
 ## Testing
 
