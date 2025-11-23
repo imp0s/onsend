@@ -1,6 +1,8 @@
 const BLOCK_MESSAGE =
   "Cannot send message as it has attachments we cannot verify. Use your desktop client.";
 
+const BLOCK_NOTIFICATION_ID = "AttachmentBlock";
+
 function getMailboxItem() {
   const item = Office.context?.mailbox?.item;
   if (!item) {
@@ -51,7 +53,29 @@ async function onMessageSend(event) {
       total: attachments.length,
     });
 
-    event.completed({ allowEvent: false, errorMessage: BLOCK_MESSAGE });
+    const item = getMailboxItem();
+    const notificationType =
+      Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage;
+    const notificationPayload = {
+      type: notificationType,
+      message: BLOCK_MESSAGE,
+      icon: "icon32",
+      persistent: true,
+    };
+
+    item.notificationMessages.replaceAsync(
+      BLOCK_NOTIFICATION_ID,
+      notificationPayload,
+      (result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          console.log("[addin] notification displayed for blocked send");
+        } else {
+          console.error("[addin] notification failed", result.error);
+        }
+
+        event.completed({ allowEvent: false });
+      },
+    );
   } catch (error) {
     console.error("[addin] unexpected error; allowing send", error);
     event.completed({ allowEvent: true });

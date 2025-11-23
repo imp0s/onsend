@@ -42,18 +42,18 @@ describe("onMessageSend", () => {
     event = { completed: jest.fn() };
     global.Office = {
       AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
-      MailboxEnums: {},
+      MailboxEnums: {
+        ItemNotificationMessageType: {
+          InformationalMessage: "informationalMessage",
+        },
+      },
       context: {
         mailbox: {
           item: {
             getAttachmentsAsync: jest.fn((cb) =>
               cb({ status: "succeeded", value: [] }),
             ),
-            notificationMessages: {
-              addAsync: jest.fn((id, options, cb) =>
-                cb({ status: "succeeded" }),
-              ),
-            },
+            notificationMessages: {},
           },
         },
       },
@@ -73,12 +73,26 @@ describe("onMessageSend", () => {
     Office.context.mailbox.item.getAttachmentsAsync = jest.fn((cb) =>
       cb({ status: "succeeded", value: [{ id: "a1" }] }),
     );
+    Office.context.mailbox.item.notificationMessages.replaceAsync = jest.fn(
+      (id, options, cb) => cb({ status: "succeeded" }),
+    );
 
     await onMessageSend(event);
 
-    expect(event.completed).toHaveBeenCalledWith({
-      allowEvent: false,
-      errorMessage: expect.any(String),
-    });
+    const notificationType =
+      Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage;
+    expect(
+      Office.context.mailbox.item.notificationMessages.replaceAsync,
+    ).toHaveBeenCalledWith(
+      "AttachmentBlock",
+      expect.objectContaining({
+        message: expect.any(String),
+        icon: "icon32",
+        persistent: true,
+        type: notificationType,
+      }),
+      expect.any(Function),
+    );
+    expect(event.completed).toHaveBeenCalledWith({ allowEvent: false });
   });
 });
