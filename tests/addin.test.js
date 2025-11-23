@@ -66,4 +66,30 @@ describe("getAttachmentContent", () => {
       content: base64Dummy,
     });
   });
+
+  it("falls back to getAttachmentContentAsync when EWS fails", async () => {
+    Office.context.mailbox.makeEwsRequestAsync = jest.fn((request, cb) => {
+      cb({
+        status: "failed",
+        error: { name: "GenericResponseError", message: "internal" },
+      });
+    });
+
+    Office.context.mailbox.item.getAttachmentContentAsync = jest.fn(
+      (id, cb) => {
+        cb({
+          status: "succeeded",
+          value: { format: "base64", content: base64Dummy },
+        });
+      },
+    );
+
+    const result = await getAttachmentContent("att-2");
+
+    expect(Office.context.mailbox.makeEwsRequestAsync).toHaveBeenCalled();
+    expect(
+      Office.context.mailbox.item.getAttachmentContentAsync,
+    ).toHaveBeenCalledWith("att-2", expect.any(Function));
+    expect(result).toEqual({ format: "base64", content: base64Dummy });
+  });
 });

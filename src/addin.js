@@ -17,6 +17,9 @@ async function getAttachmentContent(id) {
     return ewsContent;
   }
 
+  console.log("[addin] EWS unavailable; using getAttachmentContentAsync", {
+    id,
+  });
   console.log("[addin] fetching attachment content", id);
 
   const result = await new Promise((resolve, reject) => {
@@ -80,17 +83,28 @@ async function tryGetAttachmentContentFromEws(id) {
   </soap:Body>
 </soap:Envelope>`;
 
-  const ewsResponse = await new Promise((resolve, reject) => {
-    mailbox.makeEwsRequestAsync(ewsRequest, (asyncResult) => {
-      if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-        resolve(asyncResult.value);
-      } else {
-        reject(
-          asyncResult.error || new Error("Failed to fetch attachment via EWS"),
-        );
-      }
+  let ewsResponse;
+
+  try {
+    ewsResponse = await new Promise((resolve, reject) => {
+      mailbox.makeEwsRequestAsync(ewsRequest, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+          resolve(asyncResult.value);
+        } else {
+          const error =
+            asyncResult.error ||
+            new Error("Failed to fetch attachment via EWS");
+          reject(error);
+        }
+      });
     });
-  });
+  } catch (error) {
+    console.warn("[addin] EWS request failed; falling back", {
+      id,
+      error,
+    });
+    return null;
+  }
 
   const match = ewsResponse.match(/<t:Content>([\s\S]*?)<\/t:Content>/i);
   if (!match || !match[1]) {
