@@ -4,8 +4,8 @@
   <Version>1.0.0.0</Version>
   <ProviderName>Example Corp</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Word Attachment Cleaner" />
-  <Description DefaultValue="Cleans metadata and comments from Word attachments before sending." />
+  <DisplayName DefaultValue="Email Safety Checker" />
+  <Description DefaultValue="Checks recipients are within the same domain and there are no attachments." />
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png" />
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png" />
   <Hosts>
@@ -55,7 +55,6 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="EventRuntime.Url" DefaultValue="https://localhost:3000/public/functions.html" />
-        <bt:Url id="Dialog.Url" DefaultValue="https://localhost:3000/public/dialog.html" />
         <bt:Url id="FunctionFile.Url" DefaultValue="https://localhost:3000/public/functions.html" />
       </bt:Urls>
     </Resources>

@@ -1,14 +1,14 @@
-# Word Attachment Cleaner on Send
+# Email Safety Checker
 
-This project contains an Outlook on-send add-in that inspects outgoing messages for Word attachments. When a `.docx` file is found, the add-in prompts the sender to remove metadata (e.g., author fields) and comments before delivery. If accepted, the attachments are cleaned and replaced; if declined, the message sends unmodified.
+This project contains an Outlook on-send add-in that blocks emails with attachments and prevents sending to recipients outside your domain.
 
 ## Project layout
 
-- `src/`: JavaScript sources for the add-in runtime and attachment cleanup helpers.
-- `public/`: Dialog assets for user confirmation.
+- `src/`: JavaScript sources for the add-in runtime and configuration.
+- `public/`: Assets loaded by the add-in runtime.
 - `manifest/manifest.xml`: Mail add-in manifest configured for the item-send event.
 - `.github/workflows/ci.yml`: GitHub Actions workflow to build and test.
-- `tests/`: Unit tests for the document cleanup utilities.
+- `tests/`: Unit tests for the safety helpers.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
 - npm
 - Microsoft 365 subscription with the ability to sideload Outlook add-ins.
 
-> Note: The Office.js runtime is loaded from Microsoft's CDN inside the dialog page rather than installed from npm.
+> Note: The Office.js runtime is loaded from Microsoft's CDN inside the functions page rather than installed from npm.
 
 ## Clone and configure for Outlook
 
@@ -25,10 +25,10 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
    ```bash
    git clone https://github.com/imp0s/onsend.git
    cd onsend
-   sudo npm install
+   npm install
    ```
 
-2. Build the add-in once to produce the compiled runtime in `dist/`:
+2. Build the add-in once to produce the compiled runtime in `public/app.js`:
 
    ```bash
    npm run build
@@ -51,16 +51,11 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
      -H "Expires: 0"
    ```
 
-4. The manifest already includes default URLs that point to `https://localhost:3000` for the task pane (`public/commands.html`), function file (`public/functions.html`), dialog, and runtime script. If you host on a different origin/port, update [`manifest/manifest.xml`](manifest/manifest.xml) to match.
+4. The manifest includes default URLs that point to `https://localhost:3000` for the function file (`public/functions.html`) and runtime script. If you host on a different origin/port, update [`manifest/manifest.xml`](manifest/manifest.xml) to match.
 
-5. Sideload the XML add-in manifest (not the unified Microsoft 365 manifest) into Outlook (desktop or web) using Microsoft’s [add-in only manifest sideloading guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing).
+5. Sideload the XML add-in manifest into Outlook (desktop or web) using Microsoft’s [add-in only manifest sideloading guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing).
 
-6. Compose a message with one or more `.docx` attachments. When you send the message, the add-in prompts to clean the attachments.
-
-> Example files referenced above:
-> - Manifest definition: [`manifest/manifest.xml`](manifest/manifest.xml)
-> - On-send handler wiring: [`src/addin.js`](src/addin.js)
-> - User confirmation dialog: [`public/dialog.html`](public/dialog.html)
+6. Compose a message. The add-in blocks the send if any attachments are present or if recipients use domains outside the allowed list (the sender domain by default).
 
 ## Running locally
 
@@ -84,34 +79,27 @@ This project contains an Outlook on-send add-in that inspects outgoing messages 
 
 3. Update `manifest/manifest.xml` URLs if you host on a different origin/port.
 4. Sideload the manifest into Outlook (desktop or web) following Microsoft's [sideload guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing).
-5. Compose a message with one or more `.docx` attachments. When you send the message, the add-in prompts to clean the Word attachments. Choosing **Yes** removes metadata and comments and resaves the attachments before the send completes.
+5. Compose a message. The add-in stops sends that include attachments or recipients outside the permitted domain.
+
+## Configuring allowed domains
+
+By default, the add-in uses the sender's domain (from the signed-in account) to enforce recipient matching. If the sender's domain cannot be resolved, the fallback domains defined in [`src/config.js`](src/config.js) are used. Update the `allowedDomainExtensions` array with your approved domains or suffixes.
 
 ## Testing
 
 Make sure dependencies (including Jest) are installed, then run the unit tests with coverage:
 
 ```bash
-sudo npm install
+npm install
 npm test
 ```
 
-> If `npm test` reports that `jest` is missing, reinstall dependencies with `sudo npm install` to ensure dev dependencies are available.
-
 ## How it works
 
-- The on-send handler (`onMessageSend` in `src/addin.js`) enumerates attachments and filters for `.docx` files.
-- The user is prompted via an Office dialog (backed by `public/dialog.html`) to decide whether to clean the files.
-- If confirmed, each Word attachment is downloaded, cleaned with `removeMetadataAndComments` from `src/docCleanup.js`, reattached, and the send continues.
-- The cleanup routine strips common core properties (creator, modified by, created/modified timestamps, last printed) and removes all Word comments by clearing `word/comments.xml`.
+- The on-send handler (`onMessageSend` in `src/addin.js`) collects attachments and recipient addresses before the send.
+- If the sender domain is known, all recipients must match it. Otherwise the domains listed in `allowedDomainExtensions` are used as suffix checks.
+- Any attachment presence or domain mismatch shows an informational notification and blocks the send.
 
 ## GitHub Actions
 
 The workflow at `.github/workflows/ci.yml` installs dependencies, builds the JavaScript bundle, and executes the Jest test suite to keep the project healthy.
-
-## Getting more testing feedback sooner
-
-To avoid waiting for the GitHub Action to finish, ask Codex (or your local environment) to run the same checks before pushing:
-
-- Run the unit suite locally: `npm test`.
-- Rebuild after changes to catch bundle errors early: `npm run build`.
-- If you use Codex as a coding assistant, explicitly request it to execute these commands and report results before finalizing its response. That way you see failures immediately instead of waiting for CI.

@@ -1,98 +1,64 @@
-const { onMessageSend, getAttachments } = require("../src/addin");
+/* global Office */
 
-describe("getAttachments", () => {
+describe("domain safety helpers", () => {
+  let addin;
+
   beforeEach(() => {
     global.Office = {
-      AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
-      MailboxEnums: {},
       context: {
         mailbox: {
-          item: {
-            attachments: [{ id: "a1" }],
-          },
+          userProfile: { emailAddress: "sender@example.com" },
         },
       },
-    };
-  });
-
-  afterEach(() => {
-    delete global.Office;
-  });
-
-  it("returns cached attachments when async API is unavailable", async () => {
-    const result = await getAttachments();
-    expect(result).toEqual([{ id: "a1" }]);
-  });
-
-  it("uses getAttachmentsAsync when available", async () => {
-    const attachments = [{ id: "a2" }];
-    Office.context.mailbox.item.getAttachmentsAsync = jest.fn((cb) =>
-      cb({ status: "succeeded", value: attachments }),
-    );
-
-    const result = await getAttachments();
-    expect(result).toEqual(attachments);
-  });
-});
-
-describe("onMessageSend", () => {
-  let event;
-
-  beforeEach(() => {
-    event = { completed: jest.fn() };
-    global.Office = {
-      AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
       MailboxEnums: {
-        ItemNotificationMessageType: {
-          InformationalMessage: "informationalMessage",
-        },
+        ItemNotificationMessageType: { InformationalMessage: "info" },
       },
-      context: {
-        mailbox: {
-          item: {
-            getAttachmentsAsync: jest.fn((cb) =>
-              cb({ status: "succeeded", value: [] }),
-            ),
-            notificationMessages: {},
-          },
-        },
-      },
+      actions: { associate: jest.fn() },
+      onReady: jest.fn((cb) => cb()),
     };
+
+    addin = require("../src/addin");
   });
 
   afterEach(() => {
+    jest.resetModules();
     delete global.Office;
   });
 
-  it("allows send when there are no attachments", async () => {
-    await onMessageSend(event);
-    expect(event.completed).toHaveBeenCalledWith({ allowEvent: true });
+  test("extractDomain returns domain for valid email", () => {
+    expect(addin.extractDomain("user@EXAMPLE.com")).toBe("example.com");
   });
 
-  it("blocks send and shows notification when attachments exist", async () => {
-    Office.context.mailbox.item.getAttachmentsAsync = jest.fn((cb) =>
-      cb({ status: "succeeded", value: [{ id: "a1" }] }),
-    );
-    Office.context.mailbox.item.notificationMessages.replaceAsync = jest.fn(
-      (id, options, cb) => cb({ status: "succeeded" }),
-    );
+  test("getAllowedDomains returns sender domain when available", () => {
+    const { domains, enforceExact } = addin.getAllowedDomains();
+    expect(domains).toEqual(["example.com"]);
+    expect(enforceExact).toBe(true);
+  });
 
-    await onMessageSend(event);
-
-    const notificationType =
-      Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage;
+  test("isDomainAllowed enforces exact match when sender domain is known", () => {
+    const { domains, enforceExact } = addin.getAllowedDomains();
+    expect(addin.isDomainAllowed("example.com", domains, enforceExact)).toBe(
+      true,
+    );
     expect(
-      Office.context.mailbox.item.notificationMessages.replaceAsync,
-    ).toHaveBeenCalledWith(
-      "AttachmentBlock",
-      expect.objectContaining({
-        message: expect.any(String),
-        icon: "icon32",
-        persistent: true,
-        type: notificationType,
-      }),
-      expect.any(Function),
+      addin.isDomainAllowed("other-example.com", domains, enforceExact),
+    ).toBe(false);
+  });
+
+  test("recipientsWithDisallowedDomains flags mismatches", () => {
+    const { domains, enforceExact } = addin.getAllowedDomains();
+    const recipients = [
+      { emailAddress: "teammate@example.com" },
+      { emailAddress: "external@outside.com" },
+    ];
+
+    const offenders = addin.recipientsWithDisallowedDomains(
+      recipients,
+      domains,
+      enforceExact,
     );
-    expect(event.completed).toHaveBeenCalledWith({ allowEvent: false });
+
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0].domain).toBe("outside.com");
   });
 });
