@@ -32,13 +32,7 @@ Install dependencies locally with `npm install` after cloning; the `node_modules
    npm install
    ```
 
-2. Build the add-in once to produce the compiled runtime in `public/app.js`:
-
-   ```bash
-   npm run build
-   ```
-
-3. Host the project root over HTTPS on `https://localhost:3000` (Office add-ins require HTTPS even during local sideloading). A simple option is [`http-server`](https://www.npmjs.com/package/http-server). If you do not already have a development certificate, create one and start the server:
+1. Host the project root over HTTPS on `https://localhost:3000` (Office add-ins require HTTPS even during local sideloading). A simple option is [`http-server`](https://www.npmjs.com/package/http-server). If you do not already have a development certificate, create one and start the server:
 
    ```bash
    # Generate a self-signed certificate valid for localhost (adjust -subj if needed)
@@ -55,19 +49,18 @@ Install dependencies locally with `npm install` after cloning; the `node_modules
      -H "Expires: 0"
    ```
 
-4. The manifest includes default URLs that point to `https://localhost:3000` for the function file (`public/functions.html`) and runtime script. If you host on a different origin/port, update [`manifest/manifest.xml`](manifest/manifest.xml) to match.
+1. The manifest includes default URLs that point to `https://localhost:3000` for the function file (`public/functions.html`) and runtime script. If you host on a different origin/port, update [`manifest/manifest.xml`](manifest/manifest.xml) to match.
 
-5. Sideload the XML add-in manifest into Outlook (desktop or web) using Microsoft’s [add-in only manifest sideloading guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing). This effectively means:
+1. Sideload the XML add-in manifest into Outlook (desktop or web) using Microsoft’s [add-in only manifest sideloading guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing). This effectively means:
    1. Visit https://outlook.office365.com/mail/inclientstore
    1. Log in
    1. Add your custom add-in by uploading the `metadata.xml` file.
 
-6. Compose a message. The add-in blocks the send if any attachments are present or if recipients use domains outside the allowed list (the sender domain by default).
+1. Compose a message. The add-in blocks the send if any attachments are present or if recipients use domains outside the allowed list (the sender domain by default).
 
 ## Running locally
 
-1. Build the project: `npm run build`.
-2. Serve the repository root over HTTPS on port 3000 (required by Office add-ins). Any static server works; for example:
+1. Serve the repository root over HTTPS on port 3000 (required by Office add-ins). Any static server works; for example:
 
    ```bash
    # Generate a self-signed certificate valid for localhost (adjust -subj if needed)
@@ -84,16 +77,16 @@ Install dependencies locally with `npm install` after cloning; the `node_modules
      -H "Expires: 0"
    ```
 
-3. Update `manifest/manifest.xml` URLs if you host on a different origin/port.
-4. Sideload the manifest into Outlook (desktop or web) following Microsoft's [sideload guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing). This effectively means:
+1. Update `manifest/manifest.xml` URLs if you host on a different origin/port.
+1. Sideload the manifest into Outlook (desktop or web) following Microsoft's [sideload guidance](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing). This effectively means:
    1. Visit https://outlook.office365.com/mail/inclientstore
    1. Log in
    1. Add your custom add-in by uploading the `metadata.xml` file.
-5. Compose a message. The add-in stops sends that include attachments or recipients outside the permitted domain.
+1. Compose a message. The add-in stops sends that include attachments or recipients outside the permitted domain.
 
 ## Configuring allowed domains
 
-By default, the add-in uses the sender's domain (from the signed-in account) to enforce recipient matching. Domains defined in [`src/config.js`](src/config.js) are appended to the 'allow list'. Update the `allowedDomainExtensions` array with your approved domains or suffixes.
+By default, the add-in uses the sender's domain (from the signed-in account) to enforce recipient matching. Domains defined in `EmailSafetyConfig.allowedDomainExtensions` (set before loading `public/app.js`) are appended to the allow list. You can update the `allowedDomainExtensions` array near the top of [`public/app.js`](public/app.js) or assign `window.EmailSafetyConfig` in a separate script tag to customise the approved domains or suffixes.
 
 ## Testing
 
@@ -106,10 +99,10 @@ npm test
 
 ## How it works
 
-- The on-send handler (`onMessageSend` in `src/addin.js`) collects attachments and recipient addresses before the send.
+- The on-send handler (`onMessageSend` in `public/app.js`) collects attachments and recipient addresses before the send.
 - If the sender domain is known, all recipients must match it. Otherwise the domains listed in `allowedDomainExtensions` are used as suffix checks.
 - Any attachment presence or domain mismatch shows an informational notification and blocks the send.
 
 ## GitHub Actions
 
-The workflow at `.github/workflows/ci.yml` installs dependencies, builds the JavaScript bundle, and executes the Jest test suite to keep the project healthy.
+The workflow at `.github/workflows/ci.yml` installs dependencies, lints the codebase, and executes the Jest test suite to keep the project healthy.

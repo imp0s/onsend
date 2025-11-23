@@ -3,13 +3,10 @@
   "version": "0.1.0",
   "description": "Outlook on-send add-in that blocks attachments and enforces same-domain recipients.",
   "scripts": {
-    "build": "esbuild src/addin.js --bundle --platform=browser --format=iife --global-name=EmailSafetyChecker --outfile=public/app.js",
     "test": "jest",
     "lint": "eslint . --ext .js"
   },
-  "dependencies": {},
   "devDependencies": {
-    "esbuild": "^0.23.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
