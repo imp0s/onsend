@@ -45,6 +45,7 @@ function showBlockingNotification() {
         type: Office.MailboxEnums.ItemNotificationMessageType
           .InformationalMessage,
         message: BLOCK_MESSAGE,
+        icon: "icon32",
         persistent: true,
       },
       (result) => {

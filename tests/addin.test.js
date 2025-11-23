@@ -88,7 +88,7 @@ describe("onMessageSend", () => {
       Office.context.mailbox.item.notificationMessages.addAsync,
     ).toHaveBeenCalledWith(
       "AttachmentBlock",
-      expect.objectContaining({ message: expect.any(String) }),
+      expect.objectContaining({ message: expect.any(String), icon: "icon32" }),
       expect.any(Function),
     );
     expect(event.completed).toHaveBeenCalledWith({ allowEvent: false });
@@ -122,6 +122,14 @@ describe("showBlockingNotification", () => {
 
   it("resolves when notification is added", async () => {
     await expect(showBlockingNotification()).resolves.toBeUndefined();
+
+    expect(
+      Office.context.mailbox.item.notificationMessages.addAsync,
+    ).toHaveBeenCalledWith(
+      "AttachmentBlock",
+      expect.objectContaining({ icon: "icon32" }),
+      expect.any(Function),
+    );
   });
 
   it("rejects when notification fails", async () => {
