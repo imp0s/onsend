@@ -6,7 +6,9 @@ describe("domain safety helpers with configured allowances", () => {
   beforeEach(() => {
     jest.resetModules();
     jest.doMock("../src/config", () => ({ allowedDomainExtensions }));
-    ({ allowedDomainExtensions: [primaryDomain] = [] } = require("../src/config"));
+    ({
+      allowedDomainExtensions: [primaryDomain] = [],
+    } = require("../src/config"));
 
     global.Office = {
       context: {
@@ -44,9 +46,15 @@ describe("domain safety helpers with configured allowances", () => {
 
   test("isDomainAllowed allows configured domains alongside sender domain", () => {
     const { domains, enforceExact } = addin.getAllowedDomains();
-    expect(addin.isDomainAllowed(primaryDomain, domains, enforceExact)).toBe(true);
-    expect(addin.isDomainAllowed("trusted.org", domains, enforceExact)).toBe(true);
-    expect(addin.isDomainAllowed("unlisted.net", domains, enforceExact)).toBe(false);
+    expect(addin.isDomainAllowed(primaryDomain, domains, enforceExact)).toBe(
+      true,
+    );
+    expect(addin.isDomainAllowed("trusted.org", domains, enforceExact)).toBe(
+      true,
+    );
+    expect(addin.isDomainAllowed("unlisted.net", domains, enforceExact)).toBe(
+      false,
+    );
   });
 
   test("recipientsWithDisallowedDomains flags mismatches", () => {
@@ -99,8 +107,8 @@ describe("domain safety helpers without configured allowances", () => {
     const { domains, enforceExact } = addin.getAllowedDomains();
     expect(domains).toEqual([senderDomain]);
     expect(enforceExact).toBe(true);
-    expect(addin.isDomainAllowed(`sub.${senderDomain}`, domains, enforceExact)).toBe(
-      false,
-    );
+    expect(
+      addin.isDomainAllowed(`sub.${senderDomain}`, domains, enforceExact),
+    ).toBe(false);
   });
 });
