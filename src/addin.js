@@ -36,31 +36,6 @@ function getAttachments() {
   });
 }
 
-function showBlockingNotification() {
-  const item = getMailboxItem();
-  return new Promise((resolve, reject) => {
-    item.notificationMessages.addAsync(
-      "AttachmentBlock",
-      {
-        type: Office.MailboxEnums.ItemNotificationMessageType
-          .InformationalMessage,
-        message: BLOCK_MESSAGE,
-        icon: "icon32",
-        persistent: true,
-      },
-      (result) => {
-        if (result.status === Office.AsyncResultStatus.Succeeded) {
-          console.log("[addin] displayed attachment block notification");
-          resolve();
-        } else {
-          console.error("[addin] failed to display notification", result.error);
-          reject(result.error);
-        }
-      },
-    );
-  });
-}
-
 async function onMessageSend(event) {
   try {
     console.log("[addin] onMessageSend invoked");
@@ -76,13 +51,7 @@ async function onMessageSend(event) {
       total: attachments.length,
     });
 
-    try {
-      await showBlockingNotification();
-    } catch (error) {
-      console.error("[addin] notification failed", error);
-    }
-
-    event.completed({ allowEvent: false });
+    event.completed({ allowEvent: false, errorMessage: BLOCK_MESSAGE });
   } catch (error) {
     console.error("[addin] unexpected error; allowing send", error);
     event.completed({ allowEvent: true });
@@ -107,5 +76,4 @@ if (typeof Office !== "undefined" && Office.onReady) {
 module.exports = {
   onMessageSend,
   getAttachments,
-  showBlockingNotification,
 };

@@ -1,16 +1,10 @@
-const {
-  onMessageSend,
-  getAttachments,
-  showBlockingNotification,
-} = require("../src/addin");
+const { onMessageSend, getAttachments } = require("../src/addin");
 
 describe("getAttachments", () => {
   beforeEach(() => {
     global.Office = {
       AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
-      MailboxEnums: {
-        ItemNotificationMessageType: { InformationalMessage: "inform" },
-      },
+      MailboxEnums: {},
       context: {
         mailbox: {
           item: {
@@ -48,9 +42,7 @@ describe("onMessageSend", () => {
     event = { completed: jest.fn() };
     global.Office = {
       AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
-      MailboxEnums: {
-        ItemNotificationMessageType: { InformationalMessage: "inform" },
-      },
+      MailboxEnums: {},
       context: {
         mailbox: {
           item: {
@@ -84,59 +76,9 @@ describe("onMessageSend", () => {
 
     await onMessageSend(event);
 
-    expect(
-      Office.context.mailbox.item.notificationMessages.addAsync,
-    ).toHaveBeenCalledWith(
-      "AttachmentBlock",
-      expect.objectContaining({ message: expect.any(String), icon: "icon32" }),
-      expect.any(Function),
-    );
-    expect(event.completed).toHaveBeenCalledWith({ allowEvent: false });
-  });
-});
-
-describe("showBlockingNotification", () => {
-  beforeEach(() => {
-    global.Office = {
-      AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
-      MailboxEnums: {
-        ItemNotificationMessageType: { InformationalMessage: "inform" },
-      },
-      context: {
-        mailbox: {
-          item: {
-            notificationMessages: {
-              addAsync: jest.fn((id, options, cb) =>
-                cb({ status: "succeeded" }),
-              ),
-            },
-          },
-        },
-      },
-    };
-  });
-
-  afterEach(() => {
-    delete global.Office;
-  });
-
-  it("resolves when notification is added", async () => {
-    await expect(showBlockingNotification()).resolves.toBeUndefined();
-
-    expect(
-      Office.context.mailbox.item.notificationMessages.addAsync,
-    ).toHaveBeenCalledWith(
-      "AttachmentBlock",
-      expect.objectContaining({ icon: "icon32" }),
-      expect.any(Function),
-    );
-  });
-
-  it("rejects when notification fails", async () => {
-    Office.context.mailbox.item.notificationMessages.addAsync = jest.fn(
-      (id, opts, cb) => cb({ status: "failed", error: new Error("fail") }),
-    );
-
-    await expect(showBlockingNotification()).rejects.toThrow("fail");
+    expect(event.completed).toHaveBeenCalledWith({
+      allowEvent: false,
+      errorMessage: expect.any(String),
+    });
   });
 });
