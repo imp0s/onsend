@@ -1,5 +1,3 @@
-/* global Office */
-
 describe("domain safety helpers", () => {
   let addin;
 

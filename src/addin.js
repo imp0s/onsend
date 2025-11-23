@@ -94,14 +94,20 @@ function isDomainAllowed(domain, allowedDomains, enforceExact) {
   });
 }
 
-function recipientsWithDisallowedDomains(recipients, allowedDomains, enforceExact) {
+function recipientsWithDisallowedDomains(
+  recipients,
+  allowedDomains,
+  enforceExact,
+) {
   if (!Array.isArray(recipients)) return [];
 
   return recipients
     .map(normalizeRecipientAddress)
     .map(extractDomain)
     .map((domain, index) => ({ domain, original: recipients[index] }))
-    .filter((entry) => !isDomainAllowed(entry.domain, allowedDomains, enforceExact));
+    .filter(
+      (entry) => !isDomainAllowed(entry.domain, allowedDomains, enforceExact),
+    );
 }
 
 function getRecipients(fieldName) {
