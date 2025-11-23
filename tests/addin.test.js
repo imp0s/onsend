@@ -1,139 +1,134 @@
-const { normalizeAttachmentId, getAttachmentContent } = require("../src/addin");
+const {
+  onMessageSend,
+  getAttachments,
+  showBlockingNotification,
+} = require("../src/addin");
 
-describe("normalizeAttachmentId", () => {
-  it("prefers id over attachmentId when both are present", () => {
-    const attachment = {
-      id: "primary-id",
-      attachmentId: "fallback-id",
-    };
-    expect(normalizeAttachmentId(attachment)).toBe("primary-id");
-  });
-
-  it("falls back to attachmentId when id is missing", () => {
-    const attachment = {
-      attachmentId: "fallback-only",
-    };
-    expect(normalizeAttachmentId(attachment)).toBe("fallback-only");
-  });
-});
-
-describe("getAttachmentContent", () => {
-  const base64Dummy = Buffer.from("dummy").toString("base64");
-
+describe("getAttachments", () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
     global.Office = {
-      AsyncResultStatus: { Succeeded: "succeeded" },
+      AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
       MailboxEnums: {
-        AttachmentContentFormat: { Base64: "base64", FileUrl: "fileUrl" },
+        ItemNotificationMessageType: { InformationalMessage: "inform" },
       },
       context: {
         mailbox: {
           item: {
-            getAttachmentContentAsync: jest.fn(),
-            itemId: "item-1",
+            attachments: [{ id: "a1" }],
           },
-          restUrl: "https://example.test",
-          getCallbackTokenAsync: jest.fn(),
-          makeEwsRequestAsync: jest.fn((request, cb) => {
-            const ewsResponse = `<?xml version="1.0" encoding="utf-8"?>\n<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">\n  <soap:Body>\n    <m:GetAttachmentResponse xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">\n      <m:ResponseMessages>\n        <m:GetAttachmentResponseMessage ResponseClass="Success">\n          <m:Attachments>\n            <t:FileAttachment><t:Content>${base64Dummy}</t:Content></t:FileAttachment>\n          </m:Attachments>\n        </m:GetAttachmentResponseMessage>\n      </m:ResponseMessages>\n   </m:GetAttachmentResponse>\n  </soap:Body>\n</soap:Envelope>`;
-
-            cb({
-              status: "succeeded",
-              value: ewsResponse,
-            });
-          }),
         },
       },
     };
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
-    delete global.fetch;
     delete global.Office;
   });
 
-  it("downloads fileUrl content via EWS and returns base64", async () => {
-    const result = await getAttachmentContent("att-1");
+  it("returns cached attachments when async API is unavailable", async () => {
+    const result = await getAttachments();
+    expect(result).toEqual([{ id: "a1" }]);
+  });
 
-    expect(Office.context.mailbox.makeEwsRequestAsync).toHaveBeenCalledWith(
-      expect.stringContaining("GetAttachment"),
+  it("uses getAttachmentsAsync when available", async () => {
+    const attachments = [{ id: "a2" }];
+    Office.context.mailbox.item.getAttachmentsAsync = jest.fn((cb) =>
+      cb({ status: "succeeded", value: attachments }),
+    );
+
+    const result = await getAttachments();
+    expect(result).toEqual(attachments);
+  });
+});
+
+describe("onMessageSend", () => {
+  let event;
+
+  beforeEach(() => {
+    event = { completed: jest.fn() };
+    global.Office = {
+      AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
+      MailboxEnums: {
+        ItemNotificationMessageType: { InformationalMessage: "inform" },
+      },
+      context: {
+        mailbox: {
+          item: {
+            getAttachmentsAsync: jest.fn((cb) =>
+              cb({ status: "succeeded", value: [] }),
+            ),
+            notificationMessages: {
+              addAsync: jest.fn((id, options, cb) =>
+                cb({ status: "succeeded" }),
+              ),
+            },
+          },
+        },
+      },
+    };
+  });
+
+  afterEach(() => {
+    delete global.Office;
+  });
+
+  it("allows send when there are no attachments", async () => {
+    await onMessageSend(event);
+    expect(event.completed).toHaveBeenCalledWith({ allowEvent: true });
+  });
+
+  it("blocks send and shows notification when attachments exist", async () => {
+    Office.context.mailbox.item.getAttachmentsAsync = jest.fn((cb) =>
+      cb({ status: "succeeded", value: [{ id: "a1" }] }),
+    );
+
+    await onMessageSend(event);
+
+    expect(
+      Office.context.mailbox.item.notificationMessages.addAsync,
+    ).toHaveBeenCalledWith(
+      "AttachmentBlock",
+      expect.objectContaining({ message: expect.any(String) }),
       expect.any(Function),
     );
-
-    expect(
-      Office.context.mailbox.item.getAttachmentContentAsync,
-    ).not.toHaveBeenCalled();
-
-    expect(result).toEqual({
-      format: "base64",
-      content: base64Dummy,
-    });
+    expect(event.completed).toHaveBeenCalledWith({ allowEvent: false });
   });
+});
 
-  it("falls back to getAttachmentContentAsync when EWS fails", async () => {
-    Office.context.mailbox.makeEwsRequestAsync = jest.fn((request, cb) => {
-      cb({
-        status: "failed",
-        error: { name: "GenericResponseError", message: "internal" },
-      });
-    });
-
-    Office.context.mailbox.getCallbackTokenAsync = jest.fn((opts, cb) => {
-      cb({ status: "failed", error: new Error("token fail") });
-    });
-
-    Office.context.mailbox.item.getAttachmentContentAsync = jest.fn(
-      (id, cb) => {
-        cb({
-          status: "succeeded",
-          value: { format: "base64", content: base64Dummy },
-        });
+describe("showBlockingNotification", () => {
+  beforeEach(() => {
+    global.Office = {
+      AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
+      MailboxEnums: {
+        ItemNotificationMessageType: { InformationalMessage: "inform" },
       },
-    );
-
-    const result = await getAttachmentContent("att-2");
-
-    expect(Office.context.mailbox.makeEwsRequestAsync).toHaveBeenCalled();
-    expect(
-      Office.context.mailbox.item.getAttachmentContentAsync,
-    ).toHaveBeenCalledWith("att-2", expect.any(Function));
-    expect(result).toEqual({ format: "base64", content: base64Dummy });
+      context: {
+        mailbox: {
+          item: {
+            notificationMessages: {
+              addAsync: jest.fn((id, options, cb) =>
+                cb({ status: "succeeded" }),
+              ),
+            },
+          },
+        },
+      },
+    };
   });
 
-  it("uses REST attachment fetch when EWS fails but REST succeeds", async () => {
-    Office.context.mailbox.makeEwsRequestAsync = jest.fn((request, cb) => {
-      cb({ status: "failed", error: new Error("ews fail") });
-    });
+  afterEach(() => {
+    delete global.Office;
+  });
 
-    Office.context.mailbox.getCallbackTokenAsync = jest.fn((opts, cb) => {
-      cb({ status: "succeeded", value: "rest-token" });
-    });
+  it("resolves when notification is added", async () => {
+    await expect(showBlockingNotification()).resolves.toBeUndefined();
+  });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      arrayBuffer: async () => Buffer.from("rest-content"),
-    });
-
-    const result = await getAttachmentContent("att-3");
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/attachments/att-3/$value"),
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: "Bearer rest-token",
-        }),
-      }),
+  it("rejects when notification fails", async () => {
+    Office.context.mailbox.item.notificationMessages.addAsync = jest.fn(
+      (id, opts, cb) => cb({ status: "failed", error: new Error("fail") }),
     );
 
-    expect(result).toEqual({
-      format: "base64",
-      content: Buffer.from("rest-content").toString("base64"),
-    });
-    expect(
-      Office.context.mailbox.item.getAttachmentContentAsync,
-    ).not.toHaveBeenCalled();
+    await expect(showBlockingNotification()).rejects.toThrow("fail");
   });
 });
