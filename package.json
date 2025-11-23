@@ -1,16 +1,13 @@
 {
-  "name": "onsend-cleaner",
+  "name": "email-safety-checker",
   "version": "0.1.0",
-  "description": "Outlook on-send add-in that cleans Word attachment metadata and comments.",
+  "description": "Outlook on-send add-in that blocks attachments and enforces same-domain recipients.",
   "scripts": {
-    "build": "esbuild src/addin.js --bundle --platform=browser --format=iife --global-name=WordAttachmentCleaner --outfile=public/app.js",
+    "build": "esbuild src/addin.js --bundle --platform=browser --format=iife --global-name=EmailSafetyChecker --outfile=public/app.js",
     "test": "jest",
     "lint": "eslint . --ext .js"
   },
-  "dependencies": {
-    "fast-xml-parser": "^4.3.5",
-    "jszip": "^3.10.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "esbuild": "^0.23.1",
     "eslint": "^8.57.0",

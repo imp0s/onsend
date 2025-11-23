@@ -1,98 +1,114 @@
-const { onMessageSend, getAttachments } = require("../src/addin");
+describe("domain safety helpers with configured allowances", () => {
+  let addin;
+  let primaryDomain;
+  const allowedDomainExtensions = ["example.com", "trusted.org"];
 
-describe("getAttachments", () => {
   beforeEach(() => {
+    jest.resetModules();
+    jest.doMock("../src/config", () => ({ allowedDomainExtensions }));
+    ({
+      allowedDomainExtensions: [primaryDomain] = [],
+    } = require("../src/config"));
+
     global.Office = {
-      AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
-      MailboxEnums: {},
       context: {
         mailbox: {
-          item: {
-            attachments: [{ id: "a1" }],
-          },
+          userProfile: { emailAddress: `sender@${primaryDomain}` },
         },
       },
+      MailboxEnums: {
+        ItemNotificationMessageType: { InformationalMessage: "info" },
+      },
+      actions: { associate: jest.fn() },
+      onReady: jest.fn((cb) => cb()),
     };
+
+    addin = require("../src/addin");
   });
 
   afterEach(() => {
     delete global.Office;
   });
 
-  it("returns cached attachments when async API is unavailable", async () => {
-    const result = await getAttachments();
-    expect(result).toEqual([{ id: "a1" }]);
+  test("extractDomain returns domain for valid email", () => {
+    expect(addin.extractDomain(`user@${primaryDomain.toUpperCase()}`)).toBe(
+      primaryDomain,
+    );
   });
 
-  it("uses getAttachmentsAsync when available", async () => {
-    const attachments = [{ id: "a2" }];
-    Office.context.mailbox.item.getAttachmentsAsync = jest.fn((cb) =>
-      cb({ status: "succeeded", value: attachments }),
+  test("getAllowedDomains returns sender and configured domains", () => {
+    const { domains, enforceExact } = addin.getAllowedDomains();
+    expect(domains).toEqual([
+      ...new Set([primaryDomain, ...allowedDomainExtensions]),
+    ]);
+    expect(enforceExact).toBe(false);
+  });
+
+  test("isDomainAllowed allows configured domains alongside sender domain", () => {
+    const { domains, enforceExact } = addin.getAllowedDomains();
+    expect(addin.isDomainAllowed(primaryDomain, domains, enforceExact)).toBe(
+      true,
+    );
+    expect(addin.isDomainAllowed("trusted.org", domains, enforceExact)).toBe(
+      true,
+    );
+    expect(addin.isDomainAllowed("unlisted.net", domains, enforceExact)).toBe(
+      false,
+    );
+  });
+
+  test("recipientsWithDisallowedDomains flags mismatches", () => {
+    const { domains, enforceExact } = addin.getAllowedDomains();
+    const recipients = [
+      { emailAddress: `teammate@${primaryDomain}` },
+      { emailAddress: "external@unlisted.net" },
+    ];
+
+    const offenders = addin.recipientsWithDisallowedDomains(
+      recipients,
+      domains,
+      enforceExact,
     );
 
-    const result = await getAttachments();
-    expect(result).toEqual(attachments);
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0].domain).toBe("unlisted.net");
   });
 });
 
-describe("onMessageSend", () => {
-  let event;
+describe("domain safety helpers without configured allowances", () => {
+  let addin;
+  const senderDomain = "solo.com";
 
   beforeEach(() => {
-    event = { completed: jest.fn() };
+    jest.resetModules();
+    jest.doMock("../src/config", () => ({ allowedDomainExtensions: [] }));
+
     global.Office = {
-      AsyncResultStatus: { Succeeded: "succeeded", Failed: "failed" },
-      MailboxEnums: {
-        ItemNotificationMessageType: {
-          InformationalMessage: "informationalMessage",
-        },
-      },
       context: {
         mailbox: {
-          item: {
-            getAttachmentsAsync: jest.fn((cb) =>
-              cb({ status: "succeeded", value: [] }),
-            ),
-            notificationMessages: {},
-          },
+          userProfile: { emailAddress: `sender@${senderDomain}` },
         },
       },
+      MailboxEnums: {
+        ItemNotificationMessageType: { InformationalMessage: "info" },
+      },
+      actions: { associate: jest.fn() },
+      onReady: jest.fn((cb) => cb()),
     };
+
+    addin = require("../src/addin");
   });
 
   afterEach(() => {
     delete global.Office;
   });
 
-  it("allows send when there are no attachments", async () => {
-    await onMessageSend(event);
-    expect(event.completed).toHaveBeenCalledWith({ allowEvent: true });
-  });
-
-  it("blocks send and shows notification when attachments exist", async () => {
-    Office.context.mailbox.item.getAttachmentsAsync = jest.fn((cb) =>
-      cb({ status: "succeeded", value: [{ id: "a1" }] }),
-    );
-    Office.context.mailbox.item.notificationMessages.replaceAsync = jest.fn(
-      (id, options, cb) => cb({ status: "succeeded" }),
-    );
-
-    await onMessageSend(event);
-
-    const notificationType =
-      Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage;
+  test("getAllowedDomains enforces exact sender match when no config provided", () => {
+    const { domains, enforceExact } = addin.getAllowedDomains();
+    expect(domains).toEqual([senderDomain]);
+    expect(enforceExact).toBe(true);
     expect(
-      Office.context.mailbox.item.notificationMessages.replaceAsync,
-    ).toHaveBeenCalledWith(
-      "AttachmentBlock",
-      expect.objectContaining({
-        message: expect.any(String),
-        icon: "icon32",
-        persistent: true,
-        type: notificationType,
-      }),
-      expect.any(Function),
-    );
-    expect(event.completed).toHaveBeenCalledWith({ allowEvent: false });
+      addin.isDomainAllowed(`sub.${senderDomain}`, domains, enforceExact),
+    ).toBe(false);
   });
 });
