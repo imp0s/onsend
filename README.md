@@ -18,6 +18,8 @@ A simple tool to protect against sending emails outside the organisation or with
 - npm
 - Microsoft 365 subscription with the ability to sideload Outlook add-ins.
 
+Install dependencies locally with `npm install` after cloning; the `node_modules` directory is not committed to the repository.
+
 > Note: The Office.js runtime is loaded from Microsoft's CDN inside the functions page rather than installed from npm.
 
 ## Clone and configure for Outlook
