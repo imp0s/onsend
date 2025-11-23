@@ -1,9 +1,9 @@
 const { allowedDomainExtensions } = require("./config");
 
 const ATTACHMENT_BLOCK_MESSAGE =
-  "Cannot send messages with attachments. Remove all attachments and try again.";
+  "Attachments not permitted. Consider using a file sharing service.";
 const RECIPIENT_BLOCK_MESSAGE =
-  "Message blocked: recipients must use the same domain as the sender.";
+  "Recipients not internal or part of an approved organisation.";
 const CONFIG_BLOCK_MESSAGE =
   "Message blocked: configure allowed domains before sending.";
 const BLOCK_NOTIFICATION_ID = "SafetyCheckBlock";
@@ -62,19 +62,25 @@ function getAllowedDomains() {
   const senderDomain = extractDomain(
     Office.context?.mailbox?.userProfile?.emailAddress,
   );
-  if (senderDomain) {
-    return { domains: [senderDomain], enforceExact: true };
-  }
 
   const configured = Array.isArray(allowedDomainExtensions)
     ? allowedDomainExtensions
     : [];
-  const domains = configured
-    .map((domain) => (typeof domain === "string" ? domain.trim() : ""))
+  const domains = [
+    senderDomain,
+    ...configured.map((domain) =>
+      typeof domain === "string" ? domain.trim().toLowerCase() : "",
+    ),
+  ]
     .filter(Boolean)
-    .map((domain) => domain.toLowerCase());
+    .reduce((acc, domain) => {
+      if (!acc.includes(domain)) acc.push(domain);
+      return acc;
+    }, []);
 
-  return { domains, enforceExact: false };
+  const enforceExact = senderDomain && configured.length === 0;
+
+  return { domains, enforceExact };
 }
 
 function isDomainAllowed(domain, allowedDomains, enforceExact) {

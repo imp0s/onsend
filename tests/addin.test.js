@@ -1,12 +1,12 @@
-describe("domain safety helpers", () => {
+describe("domain safety helpers with configured allowances", () => {
   let addin;
   let primaryDomain;
+  const allowedDomainExtensions = ["example.com", "trusted.org"];
 
   beforeEach(() => {
+    jest.resetModules();
+    jest.doMock("../src/config", () => ({ allowedDomainExtensions }));
     ({ allowedDomainExtensions: [primaryDomain] = [] } = require("../src/config"));
-    if (!primaryDomain) {
-      throw new Error("Configure at least one allowed domain in src/config.js");
-    }
 
     global.Office = {
       context: {
@@ -25,7 +25,6 @@ describe("domain safety helpers", () => {
   });
 
   afterEach(() => {
-    jest.resetModules();
     delete global.Office;
   });
 
@@ -35,25 +34,26 @@ describe("domain safety helpers", () => {
     );
   });
 
-  test("getAllowedDomains returns sender domain when available", () => {
+  test("getAllowedDomains returns sender and configured domains", () => {
     const { domains, enforceExact } = addin.getAllowedDomains();
-    expect(domains).toEqual([primaryDomain]);
-    expect(enforceExact).toBe(true);
+    expect(domains).toEqual([
+      ...new Set([primaryDomain, ...allowedDomainExtensions]),
+    ]);
+    expect(enforceExact).toBe(false);
   });
 
-  test("isDomainAllowed enforces exact match when sender domain is known", () => {
+  test("isDomainAllowed allows configured domains alongside sender domain", () => {
     const { domains, enforceExact } = addin.getAllowedDomains();
     expect(addin.isDomainAllowed(primaryDomain, domains, enforceExact)).toBe(true);
-    expect(
-      addin.isDomainAllowed("other-example.com", domains, enforceExact),
-    ).toBe(false);
+    expect(addin.isDomainAllowed("trusted.org", domains, enforceExact)).toBe(true);
+    expect(addin.isDomainAllowed("unlisted.net", domains, enforceExact)).toBe(false);
   });
 
   test("recipientsWithDisallowedDomains flags mismatches", () => {
     const { domains, enforceExact } = addin.getAllowedDomains();
     const recipients = [
       { emailAddress: `teammate@${primaryDomain}` },
-      { emailAddress: "external@outside.com" },
+      { emailAddress: "external@unlisted.net" },
     ];
 
     const offenders = addin.recipientsWithDisallowedDomains(
@@ -63,6 +63,44 @@ describe("domain safety helpers", () => {
     );
 
     expect(offenders).toHaveLength(1);
-    expect(offenders[0].domain).toBe("outside.com");
+    expect(offenders[0].domain).toBe("unlisted.net");
+  });
+});
+
+describe("domain safety helpers without configured allowances", () => {
+  let addin;
+  const senderDomain = "solo.com";
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.doMock("../src/config", () => ({ allowedDomainExtensions: [] }));
+
+    global.Office = {
+      context: {
+        mailbox: {
+          userProfile: { emailAddress: `sender@${senderDomain}` },
+        },
+      },
+      MailboxEnums: {
+        ItemNotificationMessageType: { InformationalMessage: "info" },
+      },
+      actions: { associate: jest.fn() },
+      onReady: jest.fn((cb) => cb()),
+    };
+
+    addin = require("../src/addin");
+  });
+
+  afterEach(() => {
+    delete global.Office;
+  });
+
+  test("getAllowedDomains enforces exact sender match when no config provided", () => {
+    const { domains, enforceExact } = addin.getAllowedDomains();
+    expect(domains).toEqual([senderDomain]);
+    expect(enforceExact).toBe(true);
+    expect(addin.isDomainAllowed(`sub.${senderDomain}`, domains, enforceExact)).toBe(
+      false,
+    );
   });
 });
