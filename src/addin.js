@@ -17,6 +17,11 @@ async function getAttachmentContent(id) {
     return ewsContent;
   }
 
+  const restContent = await tryGetAttachmentContentFromRest(id);
+  if (restContent) {
+    return restContent;
+  }
+
   console.log("[addin] EWS unavailable; using getAttachmentContentAsync", {
     id,
   });
@@ -117,6 +122,76 @@ async function tryGetAttachmentContentFromEws(id) {
     format: Office.MailboxEnums.AttachmentContentFormat.Base64,
     content: match[1],
   };
+}
+
+async function tryGetAttachmentContentFromRest(id) {
+  const mailbox = Office.context?.mailbox;
+  const itemId = mailbox?.item?.itemId;
+
+  if (
+    !mailbox ||
+    typeof mailbox.getCallbackTokenAsync !== "function" ||
+    !mailbox.restUrl ||
+    !itemId
+  ) {
+    return null;
+  }
+
+  let token;
+
+  try {
+    token = await new Promise((resolve, reject) => {
+      mailbox.getCallbackTokenAsync({ isRest: true }, (result) => {
+        if (
+          result.status === Office.AsyncResultStatus.Succeeded &&
+          result.value
+        ) {
+          resolve(result.value);
+        } else {
+          reject(result.error || new Error("Failed to acquire REST token"));
+        }
+      });
+    });
+  } catch (error) {
+    console.warn("[addin] REST token unavailable; skipping REST fetch", {
+      id,
+      error,
+    });
+    return null;
+  }
+
+  const url = `${mailbox.restUrl}/v2.0/me/messages/${encodeURIComponent(
+    itemId,
+  )}/attachments/${encodeURIComponent(id)}/$value`;
+
+  try {
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      console.error("[addin] REST attachment fetch failed", {
+        id,
+        status: response.status,
+      });
+      return null;
+    }
+
+    const buffer = await response.arrayBuffer();
+    const base64Content = uint8ArrayToBase64(new Uint8Array(buffer));
+
+    console.log("[addin] fetched attachment via REST", { id });
+    return {
+      format: Office.MailboxEnums.AttachmentContentFormat.Base64,
+      content: base64Content,
+    };
+  } catch (error) {
+    console.warn("[addin] REST request failed; continuing fallback", {
+      id,
+      error,
+    });
+    return null;
+  }
 }
 
 async function removeAndReplaceAttachment(attachment) {
