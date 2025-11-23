@@ -5,10 +5,11 @@ describe("domain safety helpers with configured allowances", () => {
 
   beforeEach(() => {
     jest.resetModules();
-    jest.doMock("../src/config", () => ({ allowedDomainExtensions }));
+    global.EmailSafetyConfig = { allowedDomainExtensions };
+
     ({
       allowedDomainExtensions: [primaryDomain] = [],
-    } = require("../src/config"));
+    } = global.EmailSafetyConfig);
 
     global.Office = {
       context: {
@@ -23,11 +24,13 @@ describe("domain safety helpers with configured allowances", () => {
       onReady: jest.fn((cb) => cb()),
     };
 
-    addin = require("../src/addin");
+    addin = require("../public/app");
   });
 
   afterEach(() => {
     delete global.Office;
+    delete global.EmailSafetyChecker;
+    delete global.EmailSafetyConfig;
   });
 
   test("extractDomain returns domain for valid email", () => {
@@ -81,7 +84,7 @@ describe("domain safety helpers without configured allowances", () => {
 
   beforeEach(() => {
     jest.resetModules();
-    jest.doMock("../src/config", () => ({ allowedDomainExtensions: [] }));
+    global.EmailSafetyConfig = { allowedDomainExtensions: [] };
 
     global.Office = {
       context: {
@@ -96,11 +99,13 @@ describe("domain safety helpers without configured allowances", () => {
       onReady: jest.fn((cb) => cb()),
     };
 
-    addin = require("../src/addin");
+    addin = require("../public/app");
   });
 
   afterEach(() => {
     delete global.Office;
+    delete global.EmailSafetyChecker;
+    delete global.EmailSafetyConfig;
   });
 
   test("getAllowedDomains enforces exact sender match when no config provided", () => {
