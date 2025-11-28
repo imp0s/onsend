@@ -1,4 +1,4 @@
-const { allowedDomainExtensions } = require("./config");
+const { allowedDomainExtensions, allowedAttachmentExtensions } = require("./config");
 
 const ATTACHMENT_BLOCK_MESSAGE =
   "Attachments not permitted. Consider using a file sharing service.";
@@ -211,12 +211,23 @@ async function onMessageSend(event) {
     }
 
     if (attachments && attachments.length > 0) {
-      console.log("[addin] attachments found; blocking send", {
-        total: attachments.length,
+      const disallowed = attachments.filter((att) => {
+        const name = att.name || "";
+        const extIndex = name.lastIndexOf(".");
+        if (extIndex === -1) return true; // No extension -> blocked
+        const ext = name.slice(extIndex).toLowerCase();
+        return !allowedAttachmentExtensions.includes(ext);
       });
-      await showBlockNotification(item, ATTACHMENT_BLOCK_MESSAGE);
-      event.completed({ allowEvent: false });
-      return;
+
+      if (disallowed.length > 0) {
+        console.log("[addin] disallowed attachments found; blocking send", {
+          total: disallowed.length,
+          names: disallowed.map((a) => a.name),
+        });
+        await showBlockNotification(item, ATTACHMENT_BLOCK_MESSAGE);
+        event.completed({ allowEvent: false });
+        return;
+      }
     }
 
     console.log("[addin] safety checks passed; allowing send");
