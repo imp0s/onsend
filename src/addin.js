@@ -94,8 +94,7 @@ function isDomainAllowed(domain, allowedDomains, enforceExact) {
     const candidate = allowed.toLowerCase();
     return (
       domain.toLowerCase() === candidate ||
-      domain.toLowerCase().endsWith(`.${candidate}`) ||
-      domain.toLowerCase().endsWith(candidate)
+      domain.toLowerCase().endsWith(`.${candidate}`)
     );
   });
 }
